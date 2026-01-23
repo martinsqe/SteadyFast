@@ -1,0 +1,32 @@
+.vehicle-grid {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.vehicle-card {
+  width: 200px;
+  height: 160px;
+  background: white;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-8px) scale(1.05);
+}
+
+.vehicle-card.active {
+  border: 3px solid #2563eb;
+}
+
+.vehicle-icon {
+  font-size: 50px;
+}

@@ -1,0 +1,319 @@
+.home-container {
+  width: 100%;
+  min-height: auto;
+  text-align: center;
+  padding: 40px 20px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  background: linear-gradient(to bottom, #f9fafb, #eef2ff);
+}
+
+/* HERO */
+.hero-title {
+  font-size: clamp(2.5rem, 5vw, 4rem);
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.hero-sub {
+  font-size: 1.1rem;
+  margin-bottom: 40px;
+  color: #475569;
+}
+
+/* VEHICLE GRID */
+.vehicle-grid {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  margin-bottom: 50px;
+}
+
+/* VEHICLE CARD */
+.vehicle-card {
+  width: 220px;
+  height: 220px;
+  background: white;
+  border-radius: 18px;
+  box-shadow: 0 12px 25px rgba(0,0,0,0.08);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.vehicle-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,77,79,0.3), transparent);
+  opacity: 0;
+  transition: 0.3s;
+}
+
+.vehicle-card:hover::after {
+  opacity: 1;
+}
+
+.vehicle-card:hover {
+  transform: translateY(-10px) scale(1.07);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+}
+
+.vehicle-card.active {
+  border: 3px solid #ff4d4f;
+}
+
+/* ICON */
+.vehicle-img {
+  width: 90px;
+  height: 90px;
+  object-fit: contain;
+  margin-bottom: 12px;
+  z-index: 1;
+}
+
+/* PROBLEM SECTION */
+.problem-section {
+  margin-top: 30px;
+}
+
+.problem-section h2 {
+  color: #0f172a;
+}
+
+/* PROBLEM GRID */
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 20px;
+  max-width: 1000px;
+  margin: 20px auto;
+}
+
+/* PROBLEM CARD */
+.problem-card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+  transition: 0.25s;
+  color: #0f172a;
+}
+
+.problem-card:hover {
+  transform: scale(1.05);
+  background: #ff4d4f;
+  color: white;
+}
+
+.problem-card.active {
+  background: #ff4d4f;
+  color: white;
+}
+
+/* ---------- CAROUSEL ---------- */
+
+.carousel-section {
+  margin: 50px auto;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.carousel-section h2 {
+  margin-bottom: 20px;
+  color: #0f172a;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 20px;
+  width: max-content;
+  animation: scroll 40s linear infinite;
+}
+
+.carousel-card {
+  width: 250px;
+  height: 250px;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.18);
+  transition: 0.3s ease;
+}
+
+.carousel-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carousel-card:hover {
+  transform: scale(1.08);
+}
+
+.carousel-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,77,79,0.85), rgba(15,23,42,0.85));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: 0.3s;
+  color: white;
+  font-weight: bold;
+  text-transform: capitalize;
+}
+
+.carousel-card:hover .carousel-overlay {
+  opacity: 1;
+}
+
+/* AUTO SCROLL */
+@keyframes scroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.modal-box {
+  background: white;
+  padding: 30px;
+  border-radius: 14px;
+  width: 300px;
+  text-align: center;
+}
+
+.modal-box h2 {
+  margin-bottom: 10px;
+  color: #0f172a;
+}
+
+.pay-btn {
+  width: 100%;
+  background: #16a34a;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  margin-top: 12px;
+  cursor: pointer;
+}
+
+.close-btn {
+  width: 100%;
+  margin-top: 10px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* MOBILE */
+@media (max-width: 480px) {
+  .vehicle-card {
+    width: 200px;
+    height: 2000px;
+  }
+
+  .vehicle-img {
+    width: 60px;
+    height: 60px;
+  }
+
+  .carousel-card {
+    width: 140px;
+    height: 100px;
+  }
+}
+
+/* When one vehicle is chosen */
+.vehicle-selected {
+  justify-content: center;
+}
+
+/* Main selected card */
+.vehicle-card.main {
+  transform: scale(1.2);
+  z-index: 5;
+}
+
+/* Fade the rest */
+.vehicle-card.faded {
+  opacity: 0.25;
+  transform: scale(0.85);
+  pointer-events: none;
+}
+
+.change-vehicle-btn {
+  margin: 10px auto 20px;
+  display: block;
+  background: transparent;
+  color: #0f172a;
+  border: 2px solid #0f172a;
+  padding: 8px 18px;
+  border-radius: 20px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.change-vehicle-btn:hover {
+  background: #0f172a;
+  color: white;
+}
+
+.detail-box {
+  background: white;
+  max-width: 360px;
+  margin: 25px auto;
+  padding: 20px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.detail-box select {
+  width: 100%;
+  padding: 10px;
+  margin: 8px 0;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.confirm-btn {
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.carousel-section {
+  background: #f9fafb;
+  padding: 50px 20px;
+  position: relative;
+  z-index: 5;
+}

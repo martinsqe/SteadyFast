@@ -1,0 +1,26 @@
+.problem-grid {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+
+.problem-card {
+  width: 180px;
+  padding: 20px;
+  background: white;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+  transition: 0.3s;
+}
+
+.problem-card:hover {
+  transform: scale(1.05);
+}
+
+.problem-card.active {
+  border: 2px solid #dc2626;
+}
