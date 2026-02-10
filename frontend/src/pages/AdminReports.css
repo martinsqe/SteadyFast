@@ -1,0 +1,163 @@
+/* Shared styles for Mechanics, Jobs, and Reports pages */
+
+.mechanics-container,
+.jobs-container,
+.reports-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.mechanics-container h1,
+.jobs-container h1,
+.reports-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.mechanics-stats,
+.jobs-stats,
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card-small,
+.metric-card {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.stat-card-small:hover,
+.metric-card:hover {
+    transform: translateY(-5px);
+}
+
+.stat-card-small h3,
+.metric-card h3 {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+}
+
+.stat-number,
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #fff;
+    margin: 0.5rem 0;
+}
+
+.metric-change {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+}
+
+/* Status colors */
+.stat-card-small.pending {
+    border-color: rgba(251, 191, 36, 0.5);
+}
+
+.stat-card-small.active {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.stat-card-small.completed {
+    border-color: rgba(34, 197, 94, 0.5);
+}
+
+.stat-card-small.cancelled {
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Content sections */
+.mechanics-list,
+.jobs-list,
+.charts-section {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 2rem;
+}
+
+.mechanics-list h2,
+.jobs-list h2,
+.charts-section h2 {
+    color: #fff;
+    margin-bottom: 1rem;
+    font-size: 1.5rem;
+}
+
+.placeholder-text {
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.placeholder-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px dashed rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    padding: 3rem 2rem;
+    text-align: center;
+}
+
+.placeholder-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.placeholder-card p {
+    color: #fff;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+}
+
+.feature-list {
+    list-style: none;
+    padding: 0;
+    max-width: 400px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.feature-list li {
+    color: rgba(255, 255, 255, 0.8);
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.feature-list li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #43e97b;
+    font-weight: bold;
+}
+
+@media (max-width: 768px) {
+
+    .mechanics-container,
+    .jobs-container,
+    .reports-container {
+        padding: 1rem;
+    }
+
+    .mechanics-stats,
+    .jobs-stats,
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}

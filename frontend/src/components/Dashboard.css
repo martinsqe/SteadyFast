@@ -1,0 +1,138 @@
+.dashboard-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #020617;
+  color: white;
+}
+
+/* Mobile toggle */
+.menu-toggle {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1001;
+  background: #1e40af;
+  color: white;
+  border: none;
+  font-size: 22px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  display: none;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: #020617;
+  border-right: 1px solid #1e293b;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.3s ease;
+}
+
+/* User info */
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.user-details {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-name {
+  font-weight: 600;
+}
+
+.user-role {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* Menu */
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  flex: 1;
+}
+
+.menu button {
+  background: none;
+  border: none;
+  color: #cbd5f5;
+  text-align: left;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.menu button:hover {
+  background: #1e293b;
+  color: #fff;
+}
+
+.menu button.active {
+  background: linear-gradient(90deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+/* Logout */
+.logout-btn {
+  background: #dc2626;
+  border: none;
+  color: white;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: #b91c1c;
+}
+
+/* Content */
+.dashboard-content {
+  flex: 1;
+  padding: 40px;
+  background: #020617;
+  overflow-x: hidden;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: 100%;
+    transform: translateX(-100%);
+    z-index: 1000;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .menu-toggle {
+    display: block;
+  }
+
+  .dashboard-content {
+    padding: 60px 20px;
+  }
+}
