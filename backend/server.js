@@ -31,3 +31,7 @@ app.get("/", (req, res) => {
 app.listen(PORT, () =>
   console.log(`Server running on ${process.env.PORT}`)
 );
+
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" })
+});
