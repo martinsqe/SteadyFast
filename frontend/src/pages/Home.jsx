@@ -13,32 +13,72 @@ function Home() {
       return;
     }
 
-    setRequestStatus("loading");
-    try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/services`, {
-        vehicleType: vehicle,
-        problem: problem,
-        details: { energyType, brand, model, tyreOption, tyreSize, tyreType },
-        price: prices[finalKey]
-      }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-      });
-      console.log("Request Success:", response.data);
-      setRequestStatus("success");
-      setTimeout(() => {
-        setShowPrice(false);
-        setRequestStatus(null);
-        // Reset form
-        setVehicle(null);
-        setProblem(null);
-      }, 2000);
-    } catch (error) {
-      console.error("Request Error:", error);
-      setRequestStatus("error");
-      alert("Failed to request mechanic. Please try again.");
+    // Get user's current location
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      return;
     }
-  };
 
+    setRequestStatus("loading");
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+
+        try {
+          const response = await axios.post(
+            `${import.meta.env.VITE_API_URL}/services`,
+            {
+              vehicleType: vehicle,
+              problem: problem,
+              details: { energyType, brand, model, tyreOption, tyreSize, tyreType },
+              price: prices[finalKey],
+              location: {
+                type: "Point",
+                coordinates: [longitude, latitude]
+              }
+            },
+            {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+            }
+          );
+
+          console.log("Request Success:", response.data);
+          setRequestStatus("success");
+
+          // Better success message
+          const mechanicsCount = response.data.notifiedMechanics || 0;
+          const message = mechanicsCount > 0
+            ? `Success! Your request has been sent to ${mechanicsCount} nearby mechanic${mechanicsCount > 1 ? 's' : ''}. You'll be notified when one accepts. Check "Active Jobs" in your dashboard to track progress!`
+            : `Request submitted! We're searching for nearby mechanics. Check "Active Jobs" in your dashboard to track your request.`;
+
+          alert(message);
+
+          setTimeout(() => {
+            setShowPrice(false);
+            setRequestStatus(null);
+            // Reset form
+            setVehicle(null);
+            setProblem(null);
+          }, 2000);
+        } catch (error) {
+          console.error("Request Error:", error);
+          setRequestStatus("error");
+          alert("Failed to request mechanic. Please try again.");
+        }
+      },
+      (error) => {
+        console.error("Location error:", error);
+        alert("Please enable location access to request a mechanic");
+        setRequestStatus(null);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 5000,
+        maximumAge: 0
+      }
+    );
+  };
   const vehicles = {
     Car: ["Flat Tyre", "Battery Dead", "Engine Overheat", "Out of Fuel", "Break Failure", "Other/Not sure"],
     Bike: ["Chain Broken", "Flat Tyre", "No Spark", "Fuel Leak", "Break Failure", "Other/Not sure"],

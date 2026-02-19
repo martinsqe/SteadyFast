@@ -7,6 +7,7 @@ import JobHistory from "../components/Mechanic/JobHistory";
 import Revenue from "../components/Mechanic/Revenue";
 import MechanicProfile from "../components/Mechanic/MechanicProfile";
 import AvailableJobs from "../components/Mechanic/AvailableJobs";
+import MechanicActiveJobs from "../components/Mechanic/MechanicActiveJobs";
 
 export default function MechanicDashboard() {
   const [activeView, setActiveView] = useState('dashboard');
@@ -15,6 +16,7 @@ export default function MechanicDashboard() {
     switch (activeView) {
       case 'dashboard': return <MechanicOverview />;
       case 'available-jobs': return <AvailableJobs />;
+      case 'active-jobs': return <MechanicActiveJobs />;
       case 'clients': return <MyClients />;
       case 'reviews': return <MechanicReviews />;
       case 'history': return <JobHistory />;

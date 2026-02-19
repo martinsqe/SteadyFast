@@ -1,13 +1,35 @@
 import express from "express";
+import {
+  createServiceRequest,
+  getServiceRequests,
+  getClientServiceRequests,
+  acceptJob,
+  updateJobStatus,
+  getAvailableJobs,
+  getMechanicActiveJobs,
+  getClientActiveJob,
+  updateMechanicLocation,
+  processPayment
+} from "../controllers/serviceController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
-import { createRequest, getClientRequests, getAvailableRequests, acceptRequest } from "../controllers/serviceController.js";
+import { mechanicOnly } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-router.post("/", protect, createRequest);
-router.get("/client", protect, getClientRequests);
-router.get("/available", protect, authorizeRoles("mechanic", "admin"), getAvailableRequests);
-router.put("/:id/accept", protect, authorizeRoles("mechanic"), acceptRequest);
+// Client routes
+router.post("/", protect, createServiceRequest);
+router.get("/my-requests", protect, getClientServiceRequests);
+router.get("/my-active-job", protect, getClientActiveJob);
+
+// Mechanic routes
+router.get("/available", protect, mechanicOnly, getAvailableJobs);
+router.get("/my-active", protect, mechanicOnly, getMechanicActiveJobs);
+router.post("/:jobId/accept", protect, mechanicOnly, acceptJob);
+router.patch("/:jobId/status", protect, mechanicOnly, updateJobStatus);
+router.post("/location", protect, mechanicOnly, updateMechanicLocation);
+router.post("/:jobId/pay", protect, processPayment);
+
+// Admin routes
+router.get("/all", protect, getServiceRequests);
 
 export default router;

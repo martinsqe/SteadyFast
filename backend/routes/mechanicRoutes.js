@@ -1,24 +1,19 @@
 import express from "express";
-import {
-    getMechanicStats,
-    getMechanicClients,
-    getMechanicReviews,
-    getMechanicJobs,
-    getMechanicRevenue
+import { 
+  getMechanicProfile, 
+  updateMechanicProfile,
+  getMechanicJobs,
+  getMechanicEarnings 
 } from "../controllers/mechanicController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
+import { mechanicOnly } from "../middleware/roleMiddleware.js";
 
 const router = express.Router();
 
-// All routes are protected and for mechanics only
-router.use(protect);
-router.use(authorizeRoles("mechanic"));
-
-router.get("/stats", getMechanicStats);
-router.get("/clients", getMechanicClients);
-router.get("/reviews", getMechanicReviews);
-router.get("/jobs", getMechanicJobs);
-router.get("/revenue", getMechanicRevenue);
+// All routes are mechanic-only
+router.get("/profile", protect, mechanicOnly, getMechanicProfile);
+router.put("/profile", protect, mechanicOnly, updateMechanicProfile);
+router.get("/jobs", protect, mechanicOnly, getMechanicJobs);
+router.get("/earnings", protect, mechanicOnly, getMechanicEarnings);
 
 export default router;

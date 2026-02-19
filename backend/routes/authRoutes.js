@@ -1,7 +1,7 @@
 import express from "express";
 import { registerUser, loginUser, getAllUsers, updateProfile, getMechanics, assignMechanic, adminUpdateUser, adminDeleteUser, getUserStats } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
-import { authorizeRoles } from "../middleware/roleMiddleware.js";
+import { adminOnly, clientOnly, mechanicOnly } from "../middleware/roleMiddleware.js";
 
 import multer from "multer";
 import path from "path";
@@ -24,25 +24,24 @@ router.post("/login", loginUser);
 router.put("/profile", protect, upload.single("image"), updateProfile);
 
 // Get all users (Admin only)
-router.get("/users", protect, authorizeRoles("admin"), getAllUsers);
-router.put("/users/:id", protect, authorizeRoles("admin"), adminUpdateUser);
-router.delete("/users/:id", protect, authorizeRoles("admin"), adminDeleteUser);
+router.get("/users", protect, adminOnly, getAllUsers);
+router.put("/users/:id", protect, adminOnly, adminUpdateUser);
+router.delete("/users/:id", protect, adminOnly, adminDeleteUser);
 
 // Mechanic selection for clients
 router.get("/mechanics", protect, getMechanics);
-router.post("/assign-mechanic", protect, authorizeRoles("client"), assignMechanic);
-router.get("/stats", protect, authorizeRoles("admin"), getUserStats);
+router.post("/assign-mechanic", protect, clientOnly, assignMechanic);
+router.get("/stats", protect, adminOnly, getUserStats);
 
-
-router.get("/admin", protect, authorizeRoles("admin"), (req, res) => {
+router.get("/admin", protect, adminOnly, (req, res) => {
   res.json({ message: "Admin dashboard" });
 });
 
-router.get("/client", protect, authorizeRoles("client"), (req, res) => {
+router.get("/client", protect, clientOnly, (req, res) => {
   res.json({ message: "Client dashboard" });
 });
 
-router.get("/mechanic", protect, authorizeRoles("mechanic"), (req, res) => {
+router.get("/mechanic", protect, mechanicOnly, (req, res) => {
   res.json({ message: "Mechanic dashboard" });
 });
 

@@ -1,126 +1,69 @@
-import Job from "../models/Job.js";
-import Review from "../models/Review.js";
 import User from "../models/User.js";
+import ServiceRequest from "../models/ServiceRequest.js";
 
-// @desc    Get mechanic dashboard stats
-// @route   GET /api/mechanic/stats
-// @access  Private (Mechanic)
-export const getMechanicStats = async (req, res) => {
-    try {
-        const mechanicId = req.user._id;
-
-        const totalJobs = await Job.countDocuments({ mechanic: mechanicId });
-        const completedJobs = await Job.countDocuments({ mechanic: mechanicId, status: "Completed" });
-        const pendingJobs = await Job.countDocuments({ mechanic: mechanicId, status: "Pending" });
-
-        // Calculate total revenue
-        const revenueResult = await Job.aggregate([
-            { $match: { mechanic: mechanicId, status: "Completed" } },
-            { $group: { _id: null, total: { $sum: "$cost" } } },
-        ]);
-        const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
-
-        // Calculate average rating
-        const ratingResult = await Review.aggregate([
-            { $match: { mechanic: mechanicId } },
-            { $group: { _id: null, avg: { $avg: "$rating" } } },
-        ]);
-        const averageRating = ratingResult.length > 0 ? ratingResult[0].avg : 0;
-
-        res.json({
-            totalJobs,
-            completedJobs,
-            pendingJobs,
-            totalRevenue,
-            averageRating: parseFloat(averageRating.toFixed(1)),
-        });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+// Get mechanic profile
+export const getMechanicProfile = async (req, res) => {
+  try {
+    const mechanic = await User.findById(req.user.id).select("-password");
+    res.json({ success: true, data: mechanic });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-// @desc    Get mechanic's clients
-// @route   GET /api/mechanic/clients
-// @access  Private (Mechanic)
-export const getMechanicClients = async (req, res) => {
-    try {
-        const mechanicId = req.user._id;
+// Update mechanic profile
+export const updateMechanicProfile = async (req, res) => {
+  try {
+    const updates = req.body;
+    const mechanic = await User.findByIdAndUpdate(
+      req.user.id,
+      updates,
+      { new: true, runValidators: true }
+    ).select("-password");
 
-        // Find all unique client IDs from jobs
-        const clients = await Job.find({ mechanic: mechanicId }).distinct("client");
-
-        // Fetch user details for those clients
-        const clientDetails = await User.find({ _id: { $in: clients } }).select("name email phone address profileImage");
-
-        res.json(clientDetails);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.json({ success: true, data: mechanic });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-// @desc    Get mechanic's reviews
-// @route   GET /api/mechanic/reviews
-// @access  Private (Mechanic)
-export const getMechanicReviews = async (req, res) => {
-    try {
-        const mechanicId = req.user._id;
-
-        const reviews = await Review.find({ mechanic: mechanicId })
-            .populate("client", "name profileImage")
-            .populate("job", "serviceType vehicle")
-            .sort("-createdAt");
-
-        res.json(reviews);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-
-// @desc    Get mechanic's job history
-// @route   GET /api/mechanic/jobs
-// @access  Private (Mechanic)
+// Get mechanic's jobs (History)
 export const getMechanicJobs = async (req, res) => {
-    try {
-        const mechanicId = req.user._id;
-        const { status } = req.query;
+  try {
+    console.log(`📜 Fetching job history for mechanic: ${req.user.id}`);
+    const jobs = await ServiceRequest.find({ mechanic: req.user.id })
+      .populate("client", "name email phone profileImage")
+      .sort({ createdAt: -1 });
 
-        const query = { mechanic: mechanicId };
-        if (status && status !== "All") {
-            query.status = status;
-        }
-
-        const jobs = await Job.find(query)
-            .populate("client", "name email phone address")
-            .sort("-createdAt");
-
-        res.json(jobs);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    console.log(`✅ Returned ${jobs.length} history items`);
+    res.json({ success: true, data: jobs });
+  } catch (error) {
+    console.error("🔥 Error in getMechanicJobs:", error);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
-// @desc    Get revenue details
-// @route   GET /api/mechanic/revenue
-// @access  Private (Mechanic)
-export const getMechanicRevenue = async (req, res) => {
-    try {
-        const mechanicId = req.user._id;
+// Get mechanic's earnings
+export const getMechanicEarnings = async (req, res) => {
+  try {
+    const completedJobs = await ServiceRequest.find({
+      mechanic: req.user.id,
+      status: "completed"
+    });
 
-        // Group by month
-        const revenueByMonth = await Job.aggregate([
-            { $match: { mechanic: mechanicId, status: "Completed" } },
-            {
-                $group: {
-                    _id: { $month: "$createdAt" },
-                    total: { $sum: "$cost" },
-                    count: { $sum: 1 }
-                }
-            },
-            { $sort: { _id: 1 } }
-        ]);
+    const totalEarnings = completedJobs.reduce((sum, job) => sum + job.price, 0);
+    const jobCount = completedJobs.length;
 
-        res.json(revenueByMonth);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+    res.json({
+      success: true,
+      data: {
+        totalEarnings,
+        completedJobs: jobCount,
+        averagePerJob: jobCount > 0 ? totalEarnings / jobCount : 0,
+        jobs: completedJobs
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 };

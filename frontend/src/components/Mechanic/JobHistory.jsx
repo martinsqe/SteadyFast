@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import api from "../../api/axios";
+import axios from "axios";
+import "./JobHistory.css";
 
 const JobHistory = () => {
     const [jobs, setJobs] = useState([]);
@@ -8,8 +9,15 @@ const JobHistory = () => {
     useEffect(() => {
         const fetchJobs = async () => {
             try {
-                const response = await api.get("/mechanic/jobs");
-                setJobs(response.data);
+                const token = localStorage.getItem("token");
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_URL}/mechanic/jobs`,
+                    {
+                        headers: { Authorization: `Bearer ${token}` }
+                    }
+                );
+                // Backend returns { success: true, data: [...] }
+                setJobs(response.data.data || []);
             } catch (error) {
                 console.error("Error fetching jobs:", error);
             } finally {
@@ -20,22 +28,28 @@ const JobHistory = () => {
         fetchJobs();
     }, []);
 
-    if (loading) return <div>Loading job history...</div>;
+    if (loading) return <div className="loading">Loading job history...</div>;
 
     const getStatusColor = (status) => {
         switch (status) {
-            case "Completed": return "#10b981"; // green
-            case "In Progress": return "#3b82f6"; // blue
-            case "Pending": return "#f59e0b"; // yellow
-            case "Cancelled": return "#ef4444"; // red
+            case "completed": return "#10b981"; // green
+            case "on_the_way":
+            case "arrived":
+            case "accepted": return "#3b82f6"; // blue
+            case "pending": return "#f59e0b"; // yellow
+            case "cancelled": return "#ef4444"; // red
             default: return "#9ca3af";
         }
     };
 
     return (
         <div className="job-history">
-            <h2>Job History</h2>
-            <div className="table-container">
+            <header className="history-header">
+                <h2>🛠️ Job History</h2>
+                <p>Overview of your completed and past service requests.</p>
+            </header>
+
+            <div className="table-container shadow-premium">
                 <table className="users-table">
                     <thead>
                         <tr>
@@ -44,36 +58,48 @@ const JobHistory = () => {
                             <th>Vehicle</th>
                             <th>Service</th>
                             <th>Status</th>
-                            <th>Cost</th>
+                            <th>Earnings</th>
                         </tr>
                     </thead>
                     <tbody>
                         {jobs.length === 0 ? (
                             <tr>
-                                <td colSpan="6">No jobs found.</td>
+                                <td colSpan="6" className="no-data">No jobs found in your history.</td>
                             </tr>
                         ) : (
                             jobs.map(job => (
                                 <tr key={job._id}>
-                                    <td>{new Date(job.createdAt).toLocaleDateString()}</td>
-                                    <td>{job.client?.name}</td>
                                     <td>
-                                        {job.vehicle.year} {job.vehicle.make} {job.vehicle.model}
+                                        <div className="date-cell">
+                                            {new Date(job.createdAt).toLocaleDateString()}
+                                            <span className="time-subtext">{new Date(job.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                        </div>
                                     </td>
-                                    <td>{job.serviceType}</td>
                                     <td>
-                                        <span style={{
-                                            padding: "4px 8px",
-                                            borderRadius: "4px",
-                                            fontSize: "0.85rem",
+                                        <div className="client-cell">
+                                            <strong>{job.client?.name || 'N/A'}</strong>
+                                            <span className="phone-subtext">{job.client?.phone}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="vehicle-cell">
+                                            <span className="vehicle-type-tag">{job.vehicleType}</span>
+                                            <span className="model-text">{job.details?.brand} {job.details?.model}</span>
+                                        </div>
+                                    </td>
+                                    <td className="problem-cell">{job.problem}</td>
+                                    <td>
+                                        <span className="status-pill" style={{
                                             backgroundColor: getStatusColor(job.status) + "20",
                                             color: getStatusColor(job.status),
-                                            border: `1px solid ${getStatusColor(job.status)}`
+                                            borderColor: getStatusColor(job.status)
                                         }}>
-                                            {job.status}
+                                            {job.status?.replace('_', ' ').toUpperCase()}
                                         </span>
                                     </td>
-                                    <td>${job.cost}</td>
+                                    <td className="cost-cell">
+                                        <strong className="price-text">${job.price?.toFixed(2)}</strong>
+                                    </td>
                                 </tr>
                             ))
                         )}

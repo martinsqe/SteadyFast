@@ -1,0 +1,128 @@
+.job-history {
+    padding: 20px;
+    color: white;
+}
+
+.history-header {
+    margin-bottom: 30px;
+}
+
+.history-header h2 {
+    font-size: 2rem;
+    margin-bottom: 5px;
+}
+
+.history-header p {
+    color: #94a3b8;
+}
+
+.shadow-premium {
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
+    border: 1px solid #334155;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #1e293b;
+}
+
+.users-table th {
+    background: #0f172a;
+    padding: 15px;
+    text-align: left;
+    font-weight: 600;
+    color: #3b82f6;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+}
+
+.users-table td {
+    padding: 20px 15px;
+    border-bottom: 1px solid #334155;
+}
+
+.date-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.time-subtext {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.client-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.phone-subtext {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.vehicle-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vehicle-type-tag {
+    font-size: 0.75rem;
+    background: #334155;
+    padding: 2px 8px;
+    border-radius: 10px;
+    width: fit-content;
+    color: #e2e8f0;
+}
+
+.model-text {
+    font-weight: 500;
+}
+
+.problem-cell {
+    font-style: italic;
+    color: #cbd5e1;
+}
+
+.status-pill {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid transparent;
+    display: inline-block;
+}
+
+.price-text {
+    color: #fbbf24;
+    font-size: 1.1rem;
+}
+
+.no-data {
+    text-align: center;
+    padding: 50px !important;
+    color: #64748b;
+}
+
+@media (max-width: 768px) {
+    .users-table thead {
+        display: none;
+    }
+
+    .users-table td {
+        display: block;
+        padding: 10px 15px;
+        border: none;
+    }
+
+    .users-table tr {
+        border-bottom: 2px solid #334155;
+        padding: 15px 0;
+        display: block;
+    }
+}

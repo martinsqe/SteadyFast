@@ -76,6 +76,13 @@ const MechanicLayout = ({ children, activePage, onNavigate }) => {
                     </button>
 
                     <button
+                        className={activePage === 'active-jobs' ? 'active' : ''}
+                        onClick={() => handleNav('active-jobs')}
+                    >
+                        Active Jobs
+                    </button>
+
+                    <button
                         className={activePage === 'clients' ? 'active' : ''}
                         onClick={() => handleNav('clients')}
                     >
