@@ -20,7 +20,11 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (user) {
-      const newSocket = io('http://localhost:5000', {
+      // Use the API URL but target the root for socket connection
+      const socketUrl = import.meta.env.VITE_API_URL.replace('/api', '');
+      console.log('🔌 Initializing socket connection at:', socketUrl);
+
+      const newSocket = io(socketUrl, {
         transports: ['websocket'],
         reconnection: true,
         reconnectionAttempts: 5,

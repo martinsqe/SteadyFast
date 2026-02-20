@@ -59,11 +59,11 @@ export const createServiceRequest = async (req, res) => {
               type: 'Point',
               coordinates: [lng, lat]
             },
-            $maxDistance: 20000 // 20km
+            $maxDistance: 100000 // 100km
           }
         }
       });
-      console.log(`🔍 Found ${nearbyMechanics.length} nearby mechanics`);
+      console.log(`🔍 Found ${nearbyMechanics.length} mechanics within 100km`);
     } catch (dbError) {
       console.error("❌ Geospatial query failed:", dbError);
     }
@@ -98,21 +98,22 @@ export const getAvailableJobs = async (req, res) => {
     }
 
     console.log(`🔍 Finding available jobs for mechanic: ${req.user.id}`);
-    console.log(`📍 Mechanic location:`, JSON.stringify(mechanic.location));
+    const coords = mechanic.location?.coordinates || "No coordinates";
+    console.log(`📍 Mechanic location:`, JSON.stringify(coords));
 
     const availableJobs = await ServiceRequest.find({
       status: 'pending',
       location: {
         $near: {
           $geometry: mechanic.location,
-          $maxDistance: 20000 // 20km
+          $maxDistance: 100000 // Increased to 100km for better testing visibility
         }
       }
     })
       .populate("client", "name email phone profileImage location")
       .sort({ createdAt: -1 });
 
-    console.log(`✅ Found ${availableJobs.length} available jobs`);
+    console.log(`✅ Found ${availableJobs.length} available jobs within 100km`);
     res.json({ success: true, data: availableJobs });
   } catch (error) {
     console.error("🔥 Error in getAvailableJobs:", error);

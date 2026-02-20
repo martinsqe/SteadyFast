@@ -15,21 +15,59 @@ function AdminDashboard() {
     const [userStats, setUserStats] = useState({ clients: 0, mechanics: 0, total: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [filter, setFilter] = useState("all");
 
     // Modal states
     const [selectedUser, setSelectedUser] = useState(null);
     const [modalType, setModalType] = useState(null); // 'view', 'edit', 'delete'
 
-    // Sync activeView with filter
+    // Sync activeView with data fetching
     useEffect(() => {
-        if (activeView === 'clients') setFilter('client');
-        else if (activeView === 'mechanics') setFilter('mechanic');
-        else if (activeView === 'dashboard') setFilter('all');
+        let ignore = false;
+
+        const roleToFetch = activeView === 'clients' ? 'client' :
+            activeView === 'mechanics' ? 'mechanic' :
+                'all';
+
+        // Clear users immediately when switching tabs to avoid "mixed" flashes
+        setUsers([]);
 
         if (activeView === 'dashboard') {
             fetchStats();
         }
+
+        const fetchData = async () => {
+            if (['dashboard', 'clients', 'mechanics'].includes(activeView)) {
+                try {
+                    setLoading(true);
+                    setError(null);
+
+                    const url = roleToFetch === "all"
+                        ? "/auth/users"
+                        : `/auth/users?role=${roleToFetch}`;
+
+                    const response = await api.get(url);
+
+                    if (!ignore) {
+                        setUsers(response.data.users || []);
+                    }
+                } catch (err) {
+                    if (!ignore) {
+                        setError(err.response?.data?.message || "Failed to fetch users");
+                        console.error("Error fetching users:", err);
+                    }
+                } finally {
+                    if (!ignore) {
+                        setLoading(false);
+                    }
+                }
+            }
+        };
+
+        fetchData();
+
+        return () => {
+            ignore = true;
+        };
     }, [activeView]);
 
     const fetchStats = async () => {
@@ -40,33 +78,6 @@ function AdminDashboard() {
             }
         } catch (err) {
             console.error("Error fetching stats:", err);
-        }
-    };
-
-    // Fetch users when filter changes (only if we are in a user-related view)
-    useEffect(() => {
-        if (['dashboard', 'clients', 'mechanics'].includes(activeView)) {
-            fetchUsers();
-        }
-    }, [filter, activeView]);
-
-    const fetchUsers = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const url = filter === "all"
-                ? "/auth/users"
-                : `/auth/users?role=${filter}`;
-
-            const response = await api.get(url);
-
-            setUsers(response.data.users || []);
-        } catch (err) {
-            setError(err.response?.data?.message || "Failed to fetch users");
-            console.error("Error fetching users:", err);
-        } finally {
-            setLoading(false);
         }
     };
 

@@ -2,12 +2,12 @@ import express from "express";
 import User from "../models/User.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { authorize } from "../middleware/roleMiddleware.js";
+import { getMechanicsIncome, getMechanicDetails } from "../controllers/adminController.js";
 
 const router = express.Router();
 
-router.get("/users", protect, authorize("admin"), async (req, res) => {
-  const users = await User.find().select("-password");
-  res.json(users);
-});
+// Report routes
+router.get("/reports/mechanics", protect, authorize("admin"), getMechanicsIncome);
+router.get("/reports/mechanics/:id", protect, authorize("admin"), getMechanicDetails);
 
 export default router;

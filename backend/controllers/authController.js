@@ -42,13 +42,21 @@ export const registerUser = async (req, res) => {
 // Login
 export const loginUser = async (req, res) => {
   const { email, password } = req.body;
+  console.log(`🔐 Login attempt for: ${email}`);
 
   const user = await User.findOne({ email }).populate("personalMechanic", "name email profileImage");
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+  if (!user) {
+    console.log(`❌ Login failed: User not found (${email})`);
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
 
   const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(400).json({ message: "Invalid credentials" });
+  if (!match) {
+    console.log(`❌ Login failed: Password mismatch for ${email}`);
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
 
+  console.log(`✅ Login successful: ${email} (${user.role})`);
   res.json({
     _id: user._id,
     name: user.name,

@@ -26,7 +26,7 @@ router.get("/available", protect, mechanicOnly, getAvailableJobs);
 router.get("/my-active", protect, mechanicOnly, getMechanicActiveJobs);
 router.post("/:jobId/accept", protect, mechanicOnly, acceptJob);
 router.patch("/:jobId/status", protect, mechanicOnly, updateJobStatus);
-router.post("/location", protect, mechanicOnly, updateMechanicLocation);
+router.post("/update-location", protect, mechanicOnly, updateMechanicLocation);
 router.post("/:jobId/pay", protect, processPayment);
 
 // Admin routes

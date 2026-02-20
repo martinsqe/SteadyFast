@@ -64,7 +64,13 @@ const JobHistory = () => {
                     <tbody>
                         {jobs.length === 0 ? (
                             <tr>
-                                <td colSpan="6" className="no-data">No jobs found in your history.</td>
+                                <td colSpan="6" className="no-data">
+                                    <div className="zero-state">
+                                        <div className="zero-icon">📁</div>
+                                        <p>No jobs found in your history.</p>
+                                        <span>Once you start accepting and completing jobs, they will appear here in real-time.</span>
+                                    </div>
+                                </td>
                             </tr>
                         ) : (
                             jobs.map(job => (

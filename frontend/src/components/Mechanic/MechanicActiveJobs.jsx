@@ -75,11 +75,34 @@ function MechanicActiveJobs() {
                 setJobs(prev => prev.filter(j => j._id !== jobId));
                 alert("Job marked as completed!");
             } else {
+                // Trigger immediate location update if starting to drive
+                if (status === 'on_the_way') {
+                    triggerImmediateLocationUpdate(jobId);
+                }
                 fetchActiveJobs();
             }
         } catch (error) {
             console.error("Error updating status:", error);
             alert("Failed to update status");
+        }
+    };
+
+    const triggerImmediateLocationUpdate = (jobId) => {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const { latitude, longitude } = position.coords;
+                const token = localStorage.getItem("token");
+                try {
+                    await axios.post(
+                        `${import.meta.env.VITE_API_URL}/services/update-location`,
+                        { latitude, longitude, jobId },
+                        { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    console.log(`📍 Immediate location update sent for job ${jobId}`);
+                } catch (e) {
+                    console.error("Failed to send immediate location update:", e);
+                }
+            });
         }
     };
 

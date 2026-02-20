@@ -1,163 +1,278 @@
-/* Shared styles for Mechanics, Jobs, and Reports pages */
+/* Shared styles for Reports pages */
 
-.mechanics-container,
-.jobs-container,
 .reports-container {
     padding: 2rem;
     max-width: 1400px;
     margin: 0 auto;
-}
-
-.mechanics-container h1,
-.jobs-container h1,
-.reports-container h1 {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
     color: #fff;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-.mechanics-stats,
-.jobs-stats,
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.report-header h1 {
+    font-size: 2.2rem;
+    margin: 0;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.search-bar input {
+    padding: 0.8rem 1.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 30px;
+    color: #fff;
+    width: 300px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+    width: 350px;
+    background: rgba(255, 255, 255, 0.15);
+    border-color: #667eea;
+    outline: none;
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.3);
+}
+
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
-    margin-bottom: 2rem;
+    margin-bottom: 3rem;
 }
 
-.stat-card-small,
 .metric-card {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(15px);
     border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 1.5rem;
-    text-align: center;
-    transition: transform 0.3s ease;
+    text-align: left;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.stat-card-small:hover,
 .metric-card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
-.stat-card-small h3,
 .metric-card h3 {
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.9rem;
-    margin-bottom: 0.75rem;
+    font-size: 0.85rem;
     text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
 }
 
-.stat-number,
 .metric-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #fff;
+    font-size: 2.2rem;
+    font-weight: 800;
     margin: 0.5rem 0;
+    background: linear-gradient(to right, #fff, #a5b4fc);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
 }
 
 .metric-change {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
 }
 
-/* Status colors */
-.stat-card-small.pending {
-    border-color: rgba(251, 191, 36, 0.5);
-}
-
-.stat-card-small.active {
-    border-color: rgba(59, 130, 246, 0.5);
-}
-
-.stat-card-small.completed {
-    border-color: rgba(34, 197, 94, 0.5);
-}
-
-.stat-card-small.cancelled {
-    border-color: rgba(239, 68, 68, 0.5);
-}
-
-/* Content sections */
-.mechanics-list,
-.jobs-list,
-.charts-section {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 2rem;
-}
-
-.mechanics-list h2,
-.jobs-list h2,
-.charts-section h2 {
-    color: #fff;
-    margin-bottom: 1rem;
+/* Mechanic Income Grid */
+.mechanics-income-section h2 {
+    margin-bottom: 1.5rem;
     font-size: 1.5rem;
 }
 
-.placeholder-text {
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 2rem;
-    line-height: 1.6;
+.income-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.5rem;
 }
 
-.placeholder-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 2px dashed rgba(255, 255, 255, 0.2);
-    border-radius: 12px;
-    padding: 3rem 2rem;
-    text-align: center;
+.income-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    transition: all 0.3s ease;
 }
 
-.placeholder-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+.income-card:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
-.placeholder-card p {
-    color: #fff;
-    font-size: 1.2rem;
-    margin-bottom: 1.5rem;
+.mechanic-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
-.feature-list {
-    list-style: none;
-    padding: 0;
-    max-width: 400px;
-    margin: 0 auto;
-    text-align: left;
-}
-
-.feature-list li {
-    color: rgba(255, 255, 255, 0.8);
-    padding: 0.5rem 0;
-    padding-left: 1.5rem;
-    position: relative;
-}
-
-.feature-list li::before {
-    content: "✓";
-    position: absolute;
-    left: 0;
-    color: #43e97b;
+.mechanic-avatar {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-weight: bold;
+    font-size: 1.2rem;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.mechanic-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.mechanic-details h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.mechanic-details p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.income-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.income-stat {
+    display: flex;
+    flex-direction: column;
+}
+
+.income-stat .label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.income-stat .value {
+    font-size: 1.2rem;
+    font-weight: 700;
+}
+
+.btn-view-history {
+    padding: 0.8rem;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+}
+
+.btn-view-history:hover {
+    background: #fff;
+    color: #1e293b;
+}
+
+/* History Detail Section */
+.btn-back {
+    background: transparent;
+    border: none;
+    color: #a5b4fc;
+    cursor: pointer;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    transition: color 0.2s;
+}
+
+.btn-back:hover {
+    color: #fff;
+}
+
+.history-section {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 2rem;
+}
+
+.history-table-container {
+    overflow-x: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.history-table th {
+    text-align: left;
+    padding: 1rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.history-table td {
+    padding: 1.2rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 0.9rem;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.status-completed,
+.status-paid {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.status-pending {
+    background: rgba(234, 179, 8, 0.2);
+    color: #facc15;
+}
+
+.status-cancelled {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
 }
 
 @media (max-width: 768px) {
-
-    .mechanics-container,
-    .jobs-container,
-    .reports-container {
-        padding: 1rem;
+    .report-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .mechanics-stats,
-    .jobs-stats,
-    .metrics-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .search-bar input {
+        width: 100%;
+    }
+
+    .search-bar input:focus {
+        width: 100%;
     }
 }

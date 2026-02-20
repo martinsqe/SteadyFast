@@ -8,17 +8,34 @@ function Login({ setPage }) {
   const [password, setPassword] = useState("");
 
   const submit = async () => {
-    try {
-      const { data } = await api.post("/auth/login", {
+    console.log("🚀 [DEBUG] Login submit triggered");
+    console.log(`📧 [DEBUG] Email: ${email}`);
+    console.log(`🔑 [DEBUG] Password entered (len): ${password.length}`);
 
+    try {
+      const url = "/auth/login";
+      const fullUrl = `${api.defaults.baseURL}${url}`;
+      console.log(`🌐 [DEBUG] Full API URL: ${fullUrl}`);
+      console.log(`🧪 [DEBUG] API BaseURL from config: ${import.meta.env.VITE_API_URL}`);
+
+      const { data } = await api.post(url, {
         email,
         password,
       });
 
+      console.log("✅ [DEBUG] Login API success!", data.role);
       login(data);   // stores user + token in context
-
     } catch (err) {
-      alert(err.response?.data?.message || "Login failed");
+      console.error("❌ [DEBUG] Login API error object:", err);
+      if (err.response) {
+        console.error("❌ [DEBUG] Error Status:", err.response.status);
+        console.error("❌ [DEBUG] Error Data:", err.response.data);
+      } else if (err.request) {
+        console.error("❌ [DEBUG] No response received. Request was:", err.request);
+      } else {
+        console.error("❌ [DEBUG] Error Message:", err.message);
+      }
+      alert(err.response?.data?.message || "Login failed - check console for details");
     }
   };
 

@@ -12,6 +12,24 @@ function AvailableJobs() {
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem("token");
+
+      // First, sync mechanic's current location
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log(`📍 Syncing mechanic location: ${latitude}, ${longitude}`);
+          try {
+            await axios.post(
+              `${import.meta.env.VITE_API_URL}/services/update-location`,
+              { latitude, longitude },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+          } catch (locErr) {
+            console.warn("⚠️ Failed to sync location, fetching jobs with last known location:", locErr);
+          }
+        });
+      }
+
       console.log("📡 Fetching available jobs from:", `${import.meta.env.VITE_API_URL}/services/available`);
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/services/available`,
@@ -34,10 +52,15 @@ function AvailableJobs() {
 
   useEffect(() => {
     fetchJobs();
+    // Fallback polling every 30 seconds in case socket misses a "job:new"
+    const pollInterval = setInterval(fetchJobs, 30000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   useEffect(() => {
     if (socket) {
+      console.log("🔌 Socket active in AvailableJobs. Listening for 'job:new'...");
+
       const handleNewJob = (data) => {
         console.log("New job notification:", data);
         setJobs((prevJobs) => {

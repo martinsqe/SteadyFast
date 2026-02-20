@@ -161,3 +161,161 @@
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* Premium Table Styles for Admin Jobs */
+.shadow-premium {
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+    overflow: hidden;
+}
+
+.admin-jobs-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+.admin-jobs-table th {
+    background: rgba(15, 23, 42, 0.8);
+    padding: 18px 15px;
+    text-align: left;
+    color: #3b82f6;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-jobs-table td {
+    padding: 20px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #cbd5e1;
+    vertical-align: middle;
+}
+
+.admin-jobs-table tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.id-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.job-date {
+    color: #fff;
+    font-weight: 500;
+}
+
+.job-id {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.person-cell {
+    display: flex;
+    flex-direction: column;
+}
+
+.person-cell strong {
+    color: #e2e8f0;
+}
+
+.person-cell span {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.service-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.vehicle-tag {
+    font-size: 0.7rem;
+    background: #334155;
+    color: #3b82f6;
+    padding: 2px 8px;
+    border-radius: 4px;
+    width: fit-content;
+    font-weight: 600;
+}
+
+.problem-text {
+    font-weight: 500;
+}
+
+.status-pill {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    border: 1px solid transparent;
+}
+
+.status-pill.pending {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border-color: rgba(245, 158, 11, 0.3);
+}
+
+.status-pill.active {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.status-pill.completed {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.status-pill.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.price-tag {
+    color: #fbbf24;
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+.unassigned {
+    color: #64748b;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+/* Zero State Admin */
+.zero-state-admin {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.zero-icon-admin {
+    font-size: 4rem;
+    margin-bottom: 20px;
+}
+
+.zero-state-admin h3 {
+    margin-bottom: 10px;
+    color: #fff;
+}
+
+.zero-state-admin p {
+    color: #94a3b8;
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.jobs-header-main {
+    margin-bottom: 2.5rem;
+}
+
+.jobs-header-main p {
+    color: #94a3b8;
+    font-size: 1.1rem;
+}
