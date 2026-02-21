@@ -6,57 +6,96 @@ function Login({ setPage }) {
   const { login } = useContext(AuthContext);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [view, setView] = useState("login"); // "login" or "forgot"
+  const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    console.log("🚀 [DEBUG] Login submit triggered");
-    console.log(`📧 [DEBUG] Email: ${email}`);
-    console.log(`🔑 [DEBUG] Password entered (len): ${password.length}`);
+    if (view === "forgot") {
+      handleForgotPassword();
+      return;
+    }
 
     try {
+      setLoading(true);
       const url = "/auth/login";
-      const fullUrl = `${api.defaults.baseURL}${url}`;
-      console.log(`🌐 [DEBUG] Full API URL: ${fullUrl}`);
-      console.log(`🧪 [DEBUG] API BaseURL from config: ${import.meta.env.VITE_API_URL}`);
-
-      const { data } = await api.post(url, {
-        email,
-        password,
-      });
-
-      console.log("✅ [DEBUG] Login API success!", data.role);
-      login(data);   // stores user + token in context
+      const { data } = await api.post(url, { email, password });
+      login(data);
     } catch (err) {
-      console.error("❌ [DEBUG] Login API error object:", err);
-      if (err.response) {
-        console.error("❌ [DEBUG] Error Status:", err.response.status);
-        console.error("❌ [DEBUG] Error Data:", err.response.data);
-      } else if (err.request) {
-        console.error("❌ [DEBUG] No response received. Request was:", err.request);
-      } else {
-        console.error("❌ [DEBUG] Error Message:", err.message);
-      }
-      alert(err.response?.data?.message || "Login failed - check console for details");
+      alert(err.response?.data?.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      alert("Please enter your email address");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const { data } = await api.post("/auth/forgot-password", { email });
+      alert(data.message);
+      setView("login");
+    } catch (err) {
+      alert(err.response?.data?.message || "Failed to send reset link");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h2 style={styles.title}>Login</h2>
+        <h2 style={styles.title}>{view === "login" ? "Login" : "Recover Password"}</h2>
 
-        <input style={styles.input} type="email" placeholder="Email" onChange={(e) => setEmail(e.target.value)} />
-        <input style={styles.input} type="password" placeholder="Password" onChange={(e) => setPassword(e.target.value)} />
+        <input
+          style={styles.input}
+          type="email"
+          placeholder="Email Address"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
 
-        <button style={styles.btn} onClick={submit}>
-          Login
+        {view === "login" && (
+          <>
+            <input
+              style={styles.input}
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <div style={{ textAlign: "right", marginBottom: "14px" }}>
+              <span style={{ ...styles.link, fontSize: "0.85rem" }} onClick={() => setView("forgot")}>
+                Forgot Password?
+              </span>
+            </div>
+          </>
+        )}
+
+        <button style={styles.btn} onClick={submit} disabled={loading}>
+          {loading ? "Processing..." : view === "login" ? "Login" : "Send Reset Link"}
         </button>
 
-        <p style={styles.text}>
-          No account?{" "}
-          <span style={styles.link} onClick={() => setPage("signup")}>
-            Sign up
-          </span>
-        </p>
+        {view === "forgot" && (
+          <p style={styles.text}>
+            Remembered?{" "}
+            <span style={styles.link} onClick={() => setView("login")}>
+              Back to Login
+            </span>
+          </p>
+        )}
+
+        {view === "login" && (
+          <p style={styles.text}>
+            No account?{" "}
+            <span style={styles.link} onClick={() => setPage("signup")}>
+              Sign up
+            </span>
+          </p>
+        )}
       </div>
     </div>
   );

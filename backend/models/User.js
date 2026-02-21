@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     phone: { type: String, default: "" },
     address: { type: String, default: "" },
     dateOfBirth: { type: Date },
-    
+
     // Location for mechanics and clients
     location: {
       type: {
@@ -27,7 +27,7 @@ const userSchema = new mongoose.Schema(
         default: [0, 0]
       }
     },
-    
+
     expertiseLevel: {
       type: String,
       enum: [
@@ -44,18 +44,22 @@ const userSchema = new mongoose.Schema(
       ],
       default: "Beginner"
     },
-    
+
     personalMechanic: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
     },
-    
+
     // Mechanic availability status
     isAvailable: {
       type: Boolean,
       default: true
-    }
+    },
+
+    // Password Reset Fields
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
   },
   { timestamps: true }
 );

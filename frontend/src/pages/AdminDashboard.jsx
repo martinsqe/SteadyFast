@@ -20,13 +20,41 @@ function AdminDashboard() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [modalType, setModalType] = useState(null); // 'view', 'edit', 'delete'
 
+    const fetchUsers = async (ignore = false) => {
+        if (['dashboard', 'clients', 'mechanics'].includes(activeView)) {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const roleToFetch = activeView === 'clients' ? 'client' :
+                    activeView === 'mechanics' ? 'mechanic' :
+                        'all';
+
+                const url = roleToFetch === "all"
+                    ? "/auth/users"
+                    : `/auth/users?role=${roleToFetch}`;
+
+                const response = await api.get(url);
+
+                if (!ignore) {
+                    setUsers(response.data.users || []);
+                }
+            } catch (err) {
+                if (!ignore) {
+                    setError(err.response?.data?.message || "Failed to fetch users");
+                    console.error("Error fetching users:", err);
+                }
+            } finally {
+                if (!ignore) {
+                    setLoading(false);
+                }
+            }
+        }
+    };
+
     // Sync activeView with data fetching
     useEffect(() => {
         let ignore = false;
-
-        const roleToFetch = activeView === 'clients' ? 'client' :
-            activeView === 'mechanics' ? 'mechanic' :
-                'all';
 
         // Clear users immediately when switching tabs to avoid "mixed" flashes
         setUsers([]);
@@ -35,35 +63,7 @@ function AdminDashboard() {
             fetchStats();
         }
 
-        const fetchData = async () => {
-            if (['dashboard', 'clients', 'mechanics'].includes(activeView)) {
-                try {
-                    setLoading(true);
-                    setError(null);
-
-                    const url = roleToFetch === "all"
-                        ? "/auth/users"
-                        : `/auth/users?role=${roleToFetch}`;
-
-                    const response = await api.get(url);
-
-                    if (!ignore) {
-                        setUsers(response.data.users || []);
-                    }
-                } catch (err) {
-                    if (!ignore) {
-                        setError(err.response?.data?.message || "Failed to fetch users");
-                        console.error("Error fetching users:", err);
-                    }
-                } finally {
-                    if (!ignore) {
-                        setLoading(false);
-                    }
-                }
-            }
-        };
-
-        fetchData();
+        fetchUsers(ignore);
 
         return () => {
             ignore = true;
@@ -194,7 +194,7 @@ function AdminDashboard() {
                 {error && (
                     <div className="error-container">
                         <p>❌ {error}</p>
-                        <button onClick={fetchUsers}>Retry</button>
+                        <button onClick={() => fetchUsers()}>Retry</button>
                     </div>
                 )}
 

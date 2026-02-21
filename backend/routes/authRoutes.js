@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, getAllUsers, updateProfile, getMechanics, assignMechanic, adminUpdateUser, adminDeleteUser, getUserStats } from "../controllers/authController.js";
+import { registerUser, loginUser, getAllUsers, updateProfile, getMechanics, assignMechanic, adminUpdateUser, adminDeleteUser, getUserStats, forgotPassword, resetPassword } from "../controllers/authController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { adminOnly, clientOnly, mechanicOnly } from "../middleware/roleMiddleware.js";
 
@@ -22,6 +22,10 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.put("/profile", protect, upload.single("image"), updateProfile);
+
+// Password Reset Routes
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 
 // Get all users (Admin only)
 router.get("/users", protect, adminOnly, getAllUsers);

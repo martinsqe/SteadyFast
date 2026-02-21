@@ -80,7 +80,6 @@ function About() {
           <img src="/branches/b2.jpg" alt="Branch 2" />
           <img src="/branches/b3.jpg" alt="Branch 3" />
           <img src="/branches/b4.jpg" alt="Branch 4" />
-          <img src="/branches/b5.jpg" alt="Branch 5" />
         </div>
       </section>
 

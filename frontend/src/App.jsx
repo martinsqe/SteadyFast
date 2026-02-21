@@ -1,4 +1,4 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
@@ -11,6 +11,7 @@ import Tips from "./pages/Tips";
 import Chat from "./pages/Chat";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import ResetPassword from "./pages/ResetPassword";
 
 // Dashboards
 import AdminDashboard from "./pages/AdminDashboard";
@@ -20,29 +21,67 @@ import MechanicDashboard from "./pages/MechanicDashboard";
 import { AuthContext } from "./context/AuthContext";
 
 function App() {
-  const [page, setPage] = useState("home");
+  const [page, setPage] = useState(() => {
+    // Initial page from URL if possible
+    const path = window.location.pathname.replace("/", "");
+    return path || "home";
+  });
   const { user } = useContext(AuthContext);
 
+  // 1. Scroll to Top and History Sync
+  useEffect(() => {
+    window.scrollTo(0, 0);
+
+    // Sync URL without full reload
+    const currentPath = page === "home" ? "/" : `/${page}`;
+    if (window.location.pathname !== currentPath) {
+      window.history.pushState({ page }, "", currentPath);
+    }
+  }, [page, user?.role]);
+
+  // 2. Handle Browser Back/Forward
+  useEffect(() => {
+    const handlePopState = (event) => {
+      if (event.state && event.state.page) {
+        setPage(event.state.page);
+      }
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  // Simple token extraction for reset-password logic
+  const getResetToken = () => {
+    const path = window.location.pathname;
+    if (path.startsWith("/reset-password/")) {
+      return path.split("/reset-password/")[1];
+    }
+    return null;
+  };
+
   const renderPage = () => {
-    if (user?.role === "admin") return <AdminDashboard />;
-    if (user?.role === "client") return <ClientDashboard />;
-    if (user?.role === "mechanic") return <MechanicDashboard />;
+    if (user?.role === "admin") return <AdminDashboard key="admin" />;
+    if (user?.role === "client") return <ClientDashboard key="client" />;
+    if (user?.role === "mechanic") return <MechanicDashboard key="mechanic" />;
+
+    const resetToken = getResetToken();
+    if (resetToken) return <ResetPassword token={resetToken} setPage={setPage} key="reset" />;
 
     switch (page) {
       case "about":
-        return <About />;
+        return <About key="about" />;
       case "emergency":
-        return <Emergency />;
+        return <Emergency key="emergency" />;
       case "tips":
-        return <Tips />;
+        return <Tips key="tips" />;
       case "chat":
-        return <Chat />;
+        return <Chat key="chat" />;
       case "login":
-        return <Login setPage={setPage} />;
+        return <Login setPage={setPage} key="login" />;
       case "signup":
-        return <Signup setPage={setPage} />;
+        return <Signup setPage={setPage} key="signup" />;
       default:
-        return <Home />;
+        return <Home key="home" />;
     }
   };
 
