@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useSocket } from "../../context/SocketContext";
 import axios from "axios";
 import "./ClientActiveJobs.css";
+import PaymentModal from "./PaymentModal";
 
 const ClientActiveJobs = () => {
     const [activeJob, setActiveJob] = useState(null);
     const [loading, setLoading] = useState(true);
     const [showPricing, setShowPricing] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState("card");
 
     const socketContext = useSocket();
     const socket = socketContext ? socketContext.socket : null;
@@ -31,6 +31,13 @@ const ClientActiveJobs = () => {
 
     const handleContinueToPricing = () => {
         setShowPricing(true);
+    };
+
+    const handlePaymentSuccess = (method) => {
+        const labels = { upi: 'UPI', card: 'Card', emi: 'EMI', cash: 'Cash on Delivery' };
+        alert(`✅ Payment via ${labels[method] || method} confirmed! Thank you for using SteadyFast.`);
+        setShowPricing(false);
+        setActiveJob(null);
     };
 
     useEffect(() => {
@@ -213,58 +220,11 @@ const ClientActiveJobs = () => {
             </div>
 
             {showPricing && (
-                <div className="modal-overlay premium-blur">
-                    <div className="pricing-modal-glass">
-                        <div className="modal-header">
-                            <div className="icon-badge">🧾</div>
-                            <h2>Service Invoice</h2>
-                        </div>
-
-                        <div className="invoice-summary">
-                            <div className="invoice-row"><span>{activeJob.problem} Service</span><span>${activeJob.price.toFixed(2)}</span></div>
-                            <div className="invoice-row"><span>Mobilization / Base Fee</span><span>$15.00</span></div>
-                            <div className="invoice-total"><span>Total Amount</span><span>${(activeJob.price + 15).toFixed(2)}</span></div>
-                        </div>
-
-                        <div className="payment-method-selector">
-                            <p>Choose Payment Method:</p>
-                            <div className="method-grid">
-                                {['card', 'cash', 'mpesa'].map(m => (
-                                    <label key={m} className={`method-card ${paymentMethod === m ? 'selected' : ''}`}>
-                                        <input type="radio" name="payment" value={m} checked={paymentMethod === m} onChange={(e) => setPaymentMethod(e.target.value)} />
-                                        <span className="method-icon">{m === 'card' ? '💳' : m === 'cash' ? '💵' : '📱'}</span>
-                                        <span className="method-name">{m.toUpperCase()}</span>
-                                    </label>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="modal-actions">
-                            <button
-                                className="pay-btn-primary"
-                                onClick={async () => {
-                                    try {
-                                        const token = localStorage.getItem("token");
-                                        await axios.post(
-                                            `${import.meta.env.VITE_API_URL}/services/${activeJob._id}/pay`,
-                                            { paymentMethod },
-                                            { headers: { Authorization: `Bearer ${token}` } }
-                                        );
-                                        alert(`Payment via ${paymentMethod.toUpperCase()} successful!`);
-                                        setShowPricing(false);
-                                        setActiveJob(null);
-                                    } catch (error) {
-                                        console.error("Payment error:", error);
-                                        alert("Payment failed. Please try again.");
-                                    }
-                                }}
-                            >
-                                Pay Now
-                            </button>
-                            <button className="cancel-text-btn" onClick={() => setShowPricing(false)}>Back to Details</button>
-                        </div>
-                    </div>
-                </div>
+                <PaymentModal
+                    job={activeJob}
+                    onSuccess={handlePaymentSuccess}
+                    onClose={() => setShowPricing(false)}
+                />
             )}
         </div>
     );

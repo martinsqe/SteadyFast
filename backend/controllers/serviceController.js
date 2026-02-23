@@ -11,6 +11,7 @@ export const createServiceRequest = async (req, res) => {
     // Support both formats: 
     // 1. { longitude, latitude }
     // 2. { type: 'Point', coordinates: [lng, lat] } (Standard GeoJSON from frontend)
+    // 3. No location at all (instant request mode)
     let lng, lat;
     if (location && Array.isArray(location.coordinates)) {
       lng = location.coordinates[0];
@@ -20,22 +21,29 @@ export const createServiceRequest = async (req, res) => {
       lat = location.latitude;
     }
 
-    if (typeof lng === 'undefined' || typeof lat === 'undefined') {
-      console.error("❌ Invalid location data received:", location);
-      return res.status(400).json({ success: false, message: "Invalid location data. coordinates or longitude/latitude are required." });
+    const hasValidLocation = typeof lng !== 'undefined' && typeof lat !== 'undefined' && !isNaN(lng) && !isNaN(lat);
+    if (!hasValidLocation) {
+      console.log("ℹ️ No location provided — request will be broadcast to all available mechanics.");
+    } else {
+      console.log(`📍 Location: [${lng}, ${lat}]`);
     }
 
-    const newRequest = new ServiceRequest({
+    const requestData = {
       client: req.user.id,
       vehicleType,
       problem,
       details,
-      location: {
-        type: 'Point',
-        coordinates: [lng, lat]
-      },
       price
-    });
+    };
+
+    if (hasValidLocation) {
+      requestData.location = {
+        type: 'Point',
+        coordinates: [Number(lng), Number(lat)]
+      };
+    }
+
+    const newRequest = new ServiceRequest(requestData);
 
     await newRequest.save();
     console.log("✅ Request saved:", newRequest._id);
@@ -48,34 +56,42 @@ export const createServiceRequest = async (req, res) => {
     }
     console.log("👥 Populated request for emission");
 
-    // Find nearby mechanics (within 20km)
+    // Find nearby mechanics (within 100km) or all mechanics if no location
     let nearbyMechanics = [];
     try {
-      nearbyMechanics = await User.find({
-        role: 'mechanic',
-        location: {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [lng, lat]
-            },
-            $maxDistance: 100000 // 100km
+      if (hasValidLocation) {
+        nearbyMechanics = await User.find({
+          role: 'mechanic',
+          location: {
+            $near: {
+              $geometry: {
+                type: 'Point',
+                coordinates: [lng, lat]
+              },
+              $maxDistance: 100000 // 100km
+            }
           }
-        }
-      });
-      console.log(`🔍 Found ${nearbyMechanics.length} mechanics within 100km`);
+        });
+        console.log(`🔍 Found ${nearbyMechanics.length} mechanics within 100km`);
+      } else {
+        // No location — notify ALL available mechanics
+        nearbyMechanics = await User.find({ role: 'mechanic' });
+        console.log(`📢 Broadcasting to all ${nearbyMechanics.length} mechanics (no location provided)`);
+      }
     } catch (dbError) {
-      console.error("❌ Geospatial query failed:", dbError);
+      // Fallback: notify all mechanics on geospatial error
+      console.error("❌ Geospatial query failed, falling back to all mechanics:", dbError.message);
+      nearbyMechanics = await User.find({ role: 'mechanic' });
     }
 
-    // Emit event to nearby mechanics via socket
+    // Emit event to mechanics via socket
     const io = req.app.get('io');
     if (io) {
       nearbyMechanics.forEach(mechanic => {
         console.log(`✉️ Emitting to mechanic:${mechanic._id}`);
         io.to(`mechanic:${mechanic._id}`).emit("job:new", {
           job: populatedRequest,
-          distance: "Nearby"
+          distance: hasValidLocation ? "Nearby" : "Any"
         });
       });
     } else {

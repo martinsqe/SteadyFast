@@ -34,7 +34,7 @@ const serviceRequestSchema = new mongoose.Schema(
       },
       coordinates: {
         type: [Number], // [longitude, latitude]
-        required: true
+        default: undefined // optional — not required
       }
     },
 

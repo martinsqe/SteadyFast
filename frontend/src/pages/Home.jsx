@@ -13,71 +13,83 @@ function Home() {
       return;
     }
 
-    // Get user's current location
-    if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
-      return;
-    }
-
     setRequestStatus("loading");
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
+    // Try to get location but don't block the request on it
+    let locationData = null;
 
-        try {
-          const response = await axios.post(
-            `${import.meta.env.VITE_API_URL}/services`,
-            {
-              vehicleType: vehicle,
-              problem: problem,
-              details: { energyType, brand, model, tyreOption, tyreSize, tyreType },
-              price: prices[finalKey],
-              location: {
-                type: "Point",
-                coordinates: [longitude, latitude]
-              }
-            },
-            {
-              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-            }
-          );
+    const sendRequest = async (location) => {
+      try {
+        const payload = {
+          vehicleType: vehicle,
+          problem: problem,
+          details: { energyType, brand, model, tyreOption, tyreSize, tyreType },
+          price: prices[finalKey],
+        };
 
-          console.log("Request Success:", response.data);
-          setRequestStatus("success");
-
-          // Better success message
-          const mechanicsCount = response.data.notifiedMechanics || 0;
-          const message = mechanicsCount > 0
-            ? `Success! Your request has been sent to ${mechanicsCount} nearby mechanic${mechanicsCount > 1 ? 's' : ''}. You'll be notified when one accepts. Check "Active Jobs" in your dashboard to track progress!`
-            : `Request submitted! We're searching for nearby mechanics. Check "Active Jobs" in your dashboard to track your request.`;
-
-          alert(message);
-
-          setTimeout(() => {
-            setShowPrice(false);
-            setRequestStatus(null);
-            // Reset form
-            setVehicle(null);
-            setProblem(null);
-          }, 2000);
-        } catch (error) {
-          console.error("Request Error:", error);
-          setRequestStatus("error");
-          alert("Failed to request mechanic. Please try again.");
+        if (location) {
+          payload.location = {
+            type: "Point",
+            coordinates: [location.longitude, location.latitude]
+          };
         }
-      },
-      (error) => {
-        console.error("Location error:", error);
-        alert("Please enable location access to request a mechanic");
+
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/services`,
+          payload,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+          }
+        );
+
+        console.log("Request Success:", response.data);
+        setRequestStatus("success");
+
+        const mechanicsCount = response.data.notifiedMechanics || 0;
+        const message = mechanicsCount > 0
+          ? `Success! Your request has been sent to ${mechanicsCount} nearby mechanic${mechanicsCount > 1 ? 's' : ''}. You'll be notified when one accepts. Check "Active Jobs" in your dashboard to track progress!`
+          : `Request submitted! We're searching for available mechanics. Check "Active Jobs" in your dashboard to track your request.`;
+
+        alert(message);
+
+        setTimeout(() => {
+          setShowPrice(false);
+          setRequestStatus(null);
+          setVehicle(null);
+          setProblem(null);
+        }, 2000);
+      } catch (error) {
+        console.error("Request Error:", error);
         setRequestStatus(null);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 5000,
-        maximumAge: 0
+        const errorMsg = error.response?.data?.message || "Failed to request mechanic. Please try again.";
+        alert(errorMsg);
       }
-    );
+    };
+
+    // Try to get location with a short 3s window, then send regardless
+    if (navigator.geolocation) {
+      const geoTimeout = setTimeout(() => {
+        // Timed out waiting for GPS — send without location
+        sendRequest(null);
+      }, 3000);
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          clearTimeout(geoTimeout);
+          sendRequest({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude
+          });
+        },
+        () => {
+          clearTimeout(geoTimeout);
+          sendRequest(null);
+        },
+        { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 }
+      );
+    } else {
+      sendRequest(null);
+    }
   };
   const vehicles = {
     Car: ["Flat Tyre", "Battery Dead", "Engine Overheat", "Out of Fuel", "Break Failure", "Other/Not sure"],
