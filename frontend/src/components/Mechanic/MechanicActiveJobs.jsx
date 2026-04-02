@@ -87,6 +87,28 @@ function MechanicActiveJobs() {
         }
     };
 
+    const handleCancelJob = async (jobId) => {
+        if (!window.confirm("Are you sure you want to cancel this job? This will notify the client.")) return;
+
+        try {
+            const token = localStorage.getItem("token");
+            await axios.patch(
+                `${import.meta.env.VITE_API_URL}/services/${jobId}/status`,
+                { status: 'cancelled' },
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            // Remove from local state
+            setJobs(prev => prev.filter(j => j._id !== jobId));
+            alert("Job cancelled successfully.");
+        } catch (error) {
+            console.error("Error cancelling job:", error);
+            alert("Failed to cancel job");
+        }
+    };
+
     const triggerImmediateLocationUpdate = (jobId) => {
         if ("geolocation" in navigator) {
             navigator.geolocation.getCurrentPosition(async (position) => {
@@ -177,15 +199,25 @@ function MechanicActiveJobs() {
                                     </button>
                                 )}
 
-                                {(job.status === 'arrived' || job.status === 'on_the_way' || job.status === 'accepted') && (
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                                    {(job.status === 'arrived' || job.status === 'on_the_way' || job.status === 'accepted') && (
+                                        <button
+                                            className="btn-complete"
+                                            onClick={() => handleStatusUpdate(job._id, 'completed')}
+                                            style={{ background: '#27AE60', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}
+                                        >
+                                            🏁 Complete
+                                        </button>
+                                    )}
+
                                     <button
-                                        className="btn-complete"
-                                        onClick={() => handleStatusUpdate(job._id, 'completed')}
-                                        style={{ background: '#27AE60', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}
+                                        className="btn-cancel"
+                                        onClick={() => handleCancelJob(job._id)}
+                                        style={{ background: '#E74C3C', color: 'white', border: 'none', padding: '10px', borderRadius: '5px', cursor: 'pointer' }}
                                     >
-                                        🏁 Complete Job
+                                        🗑️ Cancel Job
                                     </button>
-                                )}
+                                </div>
                             </div>
                         </div>
                     ))}
