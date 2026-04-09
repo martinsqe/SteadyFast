@@ -1,10 +1,18 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { useSocket } from "../../context/SocketContext";
 import "./AvailableJobs.css"; // Reuse available jobs styling for consistency
 
 function MechanicActiveJobs() {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [toast, setToast] = useState(null); // { msg, type: 'success'|'error' }
+    const { socket } = useSocket();
+
+    const showToast = (msg, type = 'success') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+    };
 
     const fetchActiveJobs = async () => {
         try {
@@ -26,6 +34,15 @@ function MechanicActiveJobs() {
     useEffect(() => {
         fetchActiveJobs();
     }, []);
+
+    // Refresh active jobs list when a new job is accepted via socket
+    useEffect(() => {
+        if (!socket) return;
+        // When the mechanic accepts a job, the page may not auto-update; listen for status changes
+        const handleStatusUpdate = () => fetchActiveJobs();
+        socket.on("job:status:update", handleStatusUpdate);
+        return () => socket.off("job:status:update", handleStatusUpdate);
+    }, [socket]);
 
     // Periodic location updates for jobs that are 'on_the_way'
     useEffect(() => {
@@ -70,12 +87,10 @@ function MechanicActiveJobs() {
                 }
             );
 
-            // If completed, remove from list or refresh
             if (status === 'completed') {
                 setJobs(prev => prev.filter(j => j._id !== jobId));
-                alert("Job marked as completed!");
+                showToast("Job marked as completed!");
             } else {
-                // Trigger immediate location update if starting to drive
                 if (status === 'on_the_way') {
                     triggerImmediateLocationUpdate(jobId);
                 }
@@ -83,29 +98,25 @@ function MechanicActiveJobs() {
             }
         } catch (error) {
             console.error("Error updating status:", error);
-            alert("Failed to update status");
+            showToast(error.response?.data?.message || "Failed to update status", "error");
         }
     };
 
     const handleCancelJob = async (jobId) => {
-        if (!window.confirm("Are you sure you want to cancel this job? This will notify the client.")) return;
+        if (!window.confirm("Cancel this job? The client will be notified.")) return;
 
         try {
             const token = localStorage.getItem("token");
             await axios.patch(
                 `${import.meta.env.VITE_API_URL}/services/${jobId}/status`,
                 { status: 'cancelled' },
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            // Remove from local state
             setJobs(prev => prev.filter(j => j._id !== jobId));
-            alert("Job cancelled successfully.");
+            showToast("Job cancelled.");
         } catch (error) {
             console.error("Error cancelling job:", error);
-            alert("Failed to cancel job");
+            showToast("Failed to cancel job.", "error");
         }
     };
 
@@ -133,6 +144,18 @@ function MechanicActiveJobs() {
     return (
         <div className="available-jobs">
             <h2>Your Active Jobs</h2>
+
+            {toast && (
+                <div style={{
+                    background: toast.type === 'error' ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+                    border: `1px solid ${toast.type === 'error' ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)'}`,
+                    color: toast.type === 'error' ? '#f87171' : '#10b981',
+                    borderRadius: '10px', padding: '0.75rem 1.25rem',
+                    marginBottom: '1rem', fontWeight: 600, fontSize: '0.9rem'
+                }}>
+                    {toast.type === 'error' ? '✕ ' : '✓ '}{toast.msg}
+                </div>
+            )}
 
             {jobs.length === 0 ? (
                 <div className="no-jobs">

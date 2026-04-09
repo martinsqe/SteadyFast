@@ -29,21 +29,27 @@ const serviceRequestSchema = new mongoose.Schema(
     location: {
       type: {
         type: String,
-        enum: ['Point'],
-        default: 'Point'
+        enum: ['Point']
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
-        default: undefined // optional — not required
+        type: [Number]
       }
     },
 
     price: { type: Number, required: true },
 
+    platformFee: { type: Number, default: 1 },
+    platformFeeStatus: { type: String, enum: ["paid", "pending"], default: "pending" },
+    platformFeeMethod: { type: String, enum: ["card", "cash", "mpesa"], default: "card" },
+    platformFeePaidAt: { type: Date, default: null },
+
+    paymentIntentId: { type: String, default: null },
+    paymentProvider: { type: String, enum: ["stripe", "mpesa", "razorpay", "cash", null], default: null },
+
     status: {
       type: String,
-      enum: ["pending", "accepted", "on_the_way", "arrived", "completed", "cancelled"],
-      default: "pending"
+      enum: ["payment_pending", "pending", "accepted", "on_the_way", "arrived", "completed", "cancelled"],
+      default: "payment_pending"
     },
 
     acceptedAt: Date,

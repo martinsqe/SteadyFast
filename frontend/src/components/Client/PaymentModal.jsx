@@ -70,7 +70,8 @@ export default function PaymentModal({ job, onSuccess, onClose }) {
     // Shared
     const [paying, setPaying] = useState(false);
 
-    const totalAmount = (job.price + 15).toFixed(2);
+    const MOBILIZATION_FEE = 5;
+    const totalAmount = (job.price + MOBILIZATION_FEE).toFixed(2);
 
     // ── UPI helpers ────────────────────────────────────────────────
     const buildUpiLink = () => {
@@ -444,7 +445,7 @@ export default function PaymentModal({ job, onSuccess, onClose }) {
                     </div>
                     <div className="pm-invoice-item">
                         <span>Mobilization Fee</span>
-                        <span>$15.00</span>
+                        <span>${MOBILIZATION_FEE}.00</span>
                     </div>
                     <div className="pm-invoice-total">
                         <span>Total Due</span>

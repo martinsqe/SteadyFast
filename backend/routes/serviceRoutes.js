@@ -9,7 +9,10 @@ import {
   getMechanicActiveJobs,
   getClientActiveJob,
   updateMechanicLocation,
-  processPayment
+  processPayment,
+  submitReview,
+  getMechanicReviews,
+  getPublicReviews
 } from "../controllers/serviceController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { mechanicOnly } from "../middleware/roleMiddleware.js";
@@ -28,6 +31,11 @@ router.post("/:jobId/accept", protect, mechanicOnly, acceptJob);
 router.patch("/:jobId/status", protect, mechanicOnly, updateJobStatus);
 router.post("/update-location", protect, mechanicOnly, updateMechanicLocation);
 router.post("/:jobId/pay", protect, processPayment);
+router.post("/:jobId/review", protect, submitReview);
+router.get("/mechanic/:mechanicId/reviews", protect, getMechanicReviews);
+
+// Public routes (no auth)
+router.get("/reviews/public", getPublicReviews);
 
 // Admin routes
 router.get("/all", protect, getServiceRequests);

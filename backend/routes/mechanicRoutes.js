@@ -1,9 +1,11 @@
 import express from "express";
-import { 
-  getMechanicProfile, 
+import {
+  getMechanicProfile,
   updateMechanicProfile,
   getMechanicJobs,
-  getMechanicEarnings 
+  getMechanicEarnings,
+  getMyReviews,
+  getMyClients
 } from "../controllers/mechanicController.js";
 import { protect } from "../middleware/authMiddleware.js";
 import { mechanicOnly } from "../middleware/roleMiddleware.js";
@@ -15,5 +17,7 @@ router.get("/profile", protect, mechanicOnly, getMechanicProfile);
 router.put("/profile", protect, mechanicOnly, updateMechanicProfile);
 router.get("/jobs", protect, mechanicOnly, getMechanicJobs);
 router.get("/earnings", protect, mechanicOnly, getMechanicEarnings);
+router.get("/reviews", protect, mechanicOnly, getMyReviews);
+router.get("/clients", protect, mechanicOnly, getMyClients);
 
 export default router;

@@ -101,6 +101,13 @@ const DashboardLayout = ({ children, activePage, onNavigate }) => {
 
 
                     <button
+                        className={activePage === 'vehicles' ? 'active' : ''}
+                        onClick={() => handleNav('vehicles')}
+                    >
+                        Vehicles
+                    </button>
+
+                    <button
                         className={activePage === 'profile' ? 'active' : ''}
                         onClick={() => handleNav('profile')}
                     >

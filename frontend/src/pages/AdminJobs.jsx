@@ -144,7 +144,10 @@ const AdminJobs = () => {
                                         </td>
                                         <td>{getStatusBadge(job.status)}</td>
                                         <td>
-                                            <span className="price-tag">${job.price?.toFixed(2)}</span>
+                                            {job.status === "cancelled"
+                                                ? <span className="price-dash">—</span>
+                                                : <span className="price-tag">${job.price?.toFixed(2)}</span>
+                                            }
                                         </td>
                                     </tr>
                                 ))

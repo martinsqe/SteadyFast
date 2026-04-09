@@ -846,3 +846,34 @@
         /* just show arrow on very small screens */
     }
 }
+/* ── Stripe CardElement wrapper ── */
+.pm-stripe-card-wrap {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    padding: 14px 12px;
+    transition: border-color 0.2s;
+    margin-bottom: 4px;
+}
+.pm-stripe-card-wrap:focus-within {
+    border-color: #3b82f6;
+}
+
+.pm-secure-note {
+    font-size: 0.76rem;
+    color: #64748b;
+    margin: 8px 0 16px;
+}
+
+/* ── Button inline spinner ── */
+.pm-btn-spinner {
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: pm-spin 0.7s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+}

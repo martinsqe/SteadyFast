@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 import "./dashboard.css"; // Reuse existing styles
 
-const MechanicLayout = ({ children, activePage, onNavigate }) => {
+const MechanicLayout = ({ children, activePage, onNavigate, newJobBadge }) => {
     const [isOpen, setIsOpen] = useState(false);
     const { user, logout } = useContext(AuthContext);
 
@@ -71,8 +71,17 @@ const MechanicLayout = ({ children, activePage, onNavigate }) => {
                     <button
                         className={activePage === 'available-jobs' ? 'active' : ''}
                         onClick={() => handleNav('available-jobs')}
+                        style={{ position: 'relative' }}
                     >
                         Available Jobs
+                        {newJobBadge && activePage !== 'available-jobs' && (
+                            <span style={{
+                                position: 'absolute', top: '6px', right: '10px',
+                                width: '8px', height: '8px', borderRadius: '50%',
+                                background: '#ef4444', boxShadow: '0 0 6px #ef4444',
+                                animation: 'pulse 1.5s ease-in-out infinite'
+                            }} />
+                        )}
                     </button>
 
                     <button
@@ -108,6 +117,13 @@ const MechanicLayout = ({ children, activePage, onNavigate }) => {
                         onClick={() => handleNav('revenue')}
                     >
                         Revenue
+                    </button>
+
+                    <button
+                        className={activePage === 'chat' ? 'active' : ''}
+                        onClick={() => handleNav('chat')}
+                    >
+                        💬 Chat
                     </button>
 
                     <button

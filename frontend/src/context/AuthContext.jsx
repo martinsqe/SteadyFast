@@ -28,9 +28,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUser = (data) => {
-    // Merge existing user data with new data to preserve token if not returned
     const updatedUser = { ...user, ...data };
     localStorage.setItem("user", JSON.stringify(updatedUser));
+    // Keep the standalone token key in sync so all axios calls use the latest token
+    if (data.token) {
+      localStorage.setItem("token", data.token);
+    }
     setUser(updatedUser);
   };
 

@@ -4,48 +4,51 @@ import axios from "axios";
 import "./AvailableJobs.css";
 
 function AvailableJobs() {
-  const [jobs, setJobs] = useState([]);  // Initialize as empty array
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [acceptedMsg, setAcceptedMsg] = useState("");
   const socketContext = useSocket();
   const socket = socketContext ? socketContext.socket : null;
+
+  const syncLocation = (token) => new Promise((resolve) => {
+    if (!("geolocation" in navigator)) { resolve(); return; }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_API_URL}/services/update-location`,
+            { latitude: position.coords.latitude, longitude: position.coords.longitude },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          console.log("📍 Location synced");
+        } catch (e) {
+          console.warn("⚠️ Location sync failed:", e.message);
+        }
+        resolve();
+      },
+      () => resolve(), // denied or error — still resolve so fetch proceeds
+      { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+    );
+  });
 
   const fetchJobs = async () => {
     try {
       const token = localStorage.getItem("token");
 
-      // First, sync mechanic's current location
-      if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(async (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log(`📍 Syncing mechanic location: ${latitude}, ${longitude}`);
-          try {
-            await axios.post(
-              `${import.meta.env.VITE_API_URL}/services/update-location`,
-              { latitude, longitude },
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-          } catch (locErr) {
-            console.warn("⚠️ Failed to sync location, fetching jobs with last known location:", locErr);
-          }
-        });
-      }
+      // Sync location FIRST (await it), then fetch jobs
+      await syncLocation(token);
 
-      console.log("📡 Fetching available jobs from:", `${import.meta.env.VITE_API_URL}/services/available`);
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL}/services/available`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("📥 Available jobs response:", response.data);
-      // Make sure we always set an array
       const jobsData = response.data.data;
       setJobs(Array.isArray(jobsData) ? jobsData : []);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching jobs:", error);
-      setJobs([]);  // Set empty array on error
+      setJobs([]);
       setLoading(false);
     }
   };
@@ -64,8 +67,10 @@ function AvailableJobs() {
       const handleNewJob = (data) => {
         console.log("New job notification:", data);
         setJobs((prevJobs) => {
-          const newJobs = [data.job];
-          return newJobs.concat(prevJobs);
+          if (prevJobs.some((j) => j._id === data.job._id)) {
+            return prevJobs;
+          }
+          return [data.job, ...prevJobs];
         });
 
         if (Notification.permission === "granted") {
@@ -92,21 +97,17 @@ function AvailableJobs() {
   }, []);
 
   const handleAcceptJob = async (jobId) => {
-    const confirmed = window.confirm("Accept this job?");
-    if (!confirmed) return;
-
     try {
       const token = localStorage.getItem("token");
       await axios.post(
         `${import.meta.env.VITE_API_URL}/services/${jobId}/accept`,
         {},
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
-      alert("Job accepted! Navigate to Active Jobs to see details.");
+      // Remove from available list and show toast-style message
       setJobs((prevJobs) => prevJobs.filter((job) => job._id !== jobId));
+      setAcceptedMsg("Job accepted! Go to Active Jobs to manage it.");
+      setTimeout(() => setAcceptedMsg(""), 4000);
     } catch (error) {
       console.error("Error accepting job:", error);
       const message = error.response?.data?.message || "Failed to accept job";
@@ -120,7 +121,29 @@ function AvailableJobs() {
 
   return (
     <div className="available-jobs">
-      <h2>Available Jobs Nearby</h2>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+        <h2 style={{ margin: 0 }}>Available Jobs Nearby</h2>
+        <button
+          onClick={fetchJobs}
+          style={{
+            background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.3)',
+            color: '#60a5fa', borderRadius: '8px', padding: '6px 14px',
+            fontSize: '0.82rem', cursor: 'pointer', fontWeight: 600
+          }}
+        >
+          ↻ Refresh
+        </button>
+      </div>
+
+      {acceptedMsg && (
+        <div style={{
+          background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.3)',
+          color: '#10b981', borderRadius: '10px', padding: '0.75rem 1.25rem',
+          marginBottom: '1rem', fontWeight: 600, fontSize: '0.9rem'
+        }}>
+          ✓ {acceptedMsg}
+        </div>
+      )}
 
       {!Array.isArray(jobs) || jobs.length === 0 ? (
         <div className="no-jobs">

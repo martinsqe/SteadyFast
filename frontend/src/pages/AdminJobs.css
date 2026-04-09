@@ -283,6 +283,12 @@
     font-size: 1.1rem;
 }
 
+.price-dash {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
 .unassigned {
     color: #64748b;
     font-style: italic;

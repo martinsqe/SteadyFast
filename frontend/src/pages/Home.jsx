@@ -1,146 +1,86 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useEffect } from "react";
 import "./home.css";
 import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
+import PlatformFeeModal from "../components/Client/PlatformFeeModal";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE = API_URL.replace("/api", "");
 
 function Home() {
   const { user } = useContext(AuthContext);
-  const [requestStatus, setRequestStatus] = useState(null); // 'loading', 'success', 'error'
+  // ── dynamic vehicle data from DB ────────────────────────────────────────────
+  const [vehicleTypes, setVehicleTypes] = useState([]);
 
-  const handleRequestMechanic = async () => {
-    if (!user) {
-      alert("Please login to request a mechanic");
-      return;
-    }
+  useEffect(() => {
+    axios.get(`${API_URL}/vehicles`)
+      .then(res => setVehicleTypes(res.data.vehicleTypes || []))
+      .catch(() => setVehicleTypes([]));
+  }, []);
 
-    setRequestStatus("loading");
-
-    // Try to get location but don't block the request on it
-    let locationData = null;
-
-    const sendRequest = async (location) => {
-      try {
-        const payload = {
-          vehicleType: vehicle,
-          problem: problem,
-          details: { energyType, brand, model, tyreOption, tyreSize, tyreType },
-          price: prices[finalKey],
-        };
-
-        if (location) {
-          payload.location = {
-            type: "Point",
-            coordinates: [location.longitude, location.latitude]
-          };
-        }
-
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/services`,
-          payload,
-          {
-            headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
-          }
-        );
-
-        console.log("Request Success:", response.data);
-        setRequestStatus("success");
-
-        const mechanicsCount = response.data.notifiedMechanics || 0;
-        const message = mechanicsCount > 0
-          ? `Success! Your request has been sent to ${mechanicsCount} nearby mechanic${mechanicsCount > 1 ? 's' : ''}. You'll be notified when one accepts. Check "Active Jobs" in your dashboard to track progress!`
-          : `Request submitted! We're searching for available mechanics. Check "Active Jobs" in your dashboard to track your request.`;
-
-        alert(message);
-
-        setTimeout(() => {
-          setShowPrice(false);
-          setRequestStatus(null);
-          setVehicle(null);
-          setProblem(null);
-        }, 2000);
-      } catch (error) {
-        console.error("Request Error:", error);
-        setRequestStatus(null);
-        const errorMsg = error.response?.data?.message || "Failed to request mechanic. Please try again.";
-        alert(errorMsg);
-      }
-    };
-
-    // Try to get location with a short 3s window, then send regardless
-    if (navigator.geolocation) {
-      const geoTimeout = setTimeout(() => {
-        // Timed out waiting for GPS — send without location
-        sendRequest(null);
-      }, 3000);
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          clearTimeout(geoTimeout);
-          sendRequest({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
-          });
-        },
-        () => {
-          clearTimeout(geoTimeout);
-          sendRequest(null);
-        },
-        { enableHighAccuracy: false, timeout: 3000, maximumAge: 60000 }
-      );
-    } else {
-      sendRequest(null);
-    }
-  };
-  const vehicles = {
-    Car: ["Flat Tyre", "Battery Dead", "Engine Overheat", "Out of Fuel", "Break Failure", "Other/Not sure"],
-    Bike: ["Chain Broken", "Flat Tyre", "No Spark", "Fuel Leak", "Break Failure", "Other/Not sure"],
+  // Build the shape the rest of the UI expects from fetched data,
+  // falling back to hardcoded defaults if nothing is in the DB yet.
+  const FALLBACK_VEHICLES = {
+    Car:   ["Flat Tyre", "Battery Dead", "Engine Overheat", "Out of Fuel", "Break Failure", "Other/Not sure"],
+    Bike:  ["Chain Broken", "Flat Tyre", "No Spark", "Fuel Leak", "Break Failure", "Other/Not sure"],
     Truck: ["Brake Failure", "Engine Fault", "Flat Tyre", "Battery Dead", "Other/Not sure"],
-    Bus: ["Brake Failure", "Engine Fault", "Overheating", "Flat Tyre", "Other/Not sure"],
+    Bus:   ["Brake Failure", "Engine Fault", "Overheating", "Flat Tyre", "Other/Not sure"],
   };
 
-  const prices = {
-    "Flat Tyre-Repair": 15,
-    "Flat Tyre-Replacement": 40,
-    "Battery Dead": 25,
-    "Engine Overheat": 40,
-    "Out of Fuel": 10,
-    "Chain Broken": 20,
-    "No Spark": 18,
-    "Fuel Leak": 35,
-    "Brake Failure": 50,
-    "Engine Fault": 60,
-    "Overheating": 45,
-    "Break Failure": 50,
-    "Other/Not sure": 0
+  const FALLBACK_PRICES = {
+    "Flat Tyre-Repair": 15, "Flat Tyre-Replacement": 40, "Battery Dead": 25,
+    "Engine Overheat": 40, "Out of Fuel": 10, "Chain Broken": 20,
+    "No Spark": 18, "Fuel Leak": 35, "Brake Failure": 50,
+    "Engine Fault": 60, "Overheating": 45, "Break Failure": 50, "Other/Not sure": 0
   };
 
-  const vehicleDetails = {
-    Car: {
-      Electric: { Tesla: ["Model 3", "Model S"], Nissan: ["Leaf"] },
-      "Non-Electric": {
-        Toyota: ["Corolla", "Camry"],
-        Honda: ["Civic", "Accord"],
-      },
-    },
-    Bike: {
-      Electric: { Zero: ["SR/F", "FX"] },
-      "Non-Electric": {
-        Yamaha: ["R15", "MT-15"],
-        Bajaj: ["Pulsar", "Dominar"],
-      },
-    },
-    Truck: {
-      "Non-Electric": {
-        Volvo: ["FH", "FM"],
-        Tata: ["Prima", "Signa"],
-      },
-    },
-    Bus: {
-      "Non-Electric": {
-        AshokLeyland: ["Viking", "Falcon"],
-        Tata: ["Starbus"],
-      },
-    },
+  const FALLBACK_DETAILS = {
+    Car:  { Electric: { Tesla: ["Model 3", "Model S"], Nissan: ["Leaf"] }, "Non-Electric": { Toyota: ["Corolla", "Camry"], Honda: ["Civic", "Accord"] } },
+    Bike: { Electric: { Zero: ["SR/F", "FX"] }, "Non-Electric": { Yamaha: ["R15", "MT-15"], Bajaj: ["Pulsar", "Dominar"] } },
+    Truck:{ "Non-Electric": { Volvo: ["FH", "FM"], Tata: ["Prima", "Signa"] } },
+    Bus:  { "Non-Electric": { AshokLeyland: ["Viking", "Falcon"], Tata: ["Starbus"] } },
+  };
+
+  const useDB = vehicleTypes.length > 0;
+
+  // vehicles map: { name -> [problem names] }
+  const vehicles = useDB
+    ? Object.fromEntries(vehicleTypes.map(vt => [vt.name, vt.problems.map(p => p.name)]))
+    : FALLBACK_VEHICLES;
+
+  // prices map: { "Problem" or "Problem-SubOption" -> price }
+  const prices = useDB
+    ? vehicleTypes.reduce((acc, vt) => {
+        vt.problems.forEach(p => {
+          if (p.hasSubOptions && p.subOptions.length > 0) {
+            p.subOptions.forEach(so => { acc[`${p.name}-${so.label}`] = so.price; });
+          } else {
+            acc[p.name] = p.price;
+          }
+        });
+        return acc;
+      }, {})
+    : FALLBACK_PRICES;
+
+  // vehicleDetails: { name -> { energyType -> { brand -> [models] } } }
+  const vehicleDetails = useDB
+    ? Object.fromEntries(vehicleTypes.map(vt => [
+        vt.name,
+        Object.fromEntries(
+          (vt.details?.energyTypes || []).map(et => [
+            et.name,
+            Object.fromEntries(et.brands.map(b => [b.name, b.models]))
+          ])
+        )
+      ]))
+    : FALLBACK_DETAILS;
+
+  // icon lookup
+  const getVehicleIcon = (name, iconPath) => {
+    if (!iconPath) return `/icons/${name.toLowerCase()}.png`;
+    if (iconPath.startsWith("http")) return iconPath;
+    if (iconPath.startsWith("/uploads/")) return `${API_BASE}${iconPath}`;
+    return iconPath;
   };
 
   const tyreSizes = ["14 inch", "15 inch", "16 inch", "17 inch"];
@@ -155,6 +95,7 @@ function Home() {
   const [tyreSize, setTyreSize] = useState("");
   const [tyreType, setTyreType] = useState("");
   const [showPrice, setShowPrice] = useState(false);
+  const [showFeePayment, setShowFeePayment] = useState(false);
 
   const finalKey =
     problem === "Flat Tyre" ? `Flat Tyre-${tyreOption}` : problem;
@@ -184,27 +125,30 @@ function Home() {
             <div className="step-number">1</div>
             <div className="step-content">
               <h3>Select Vehicle</h3>
-              <div className={`vehicle-grid ${vehicle ? "compact" : ""}`}>
-                {Object.keys(vehicles).map((v) => (
-                  <div
-                    key={v}
-                    className={`vehicle-card ${vehicle === v ? "active" : ""} ${vehicle && vehicle !== v ? "faded" : ""}`}
-                    onClick={() => {
-                      setVehicle(v);
-                      setProblem(null);
-                      setEnergyType("");
-                      setBrand("");
-                      setModel("");
-                      setTyreOption("");
-                      setTyreSize("");
-                      setTyreType("");
-                      setShowPrice(false);
-                    }}
-                  >
-                    <img src={`/icons/${v.toLowerCase()}.png`} alt={v} className="vehicle-img" />
-                    <span>{v}</span>
-                  </div>
-                ))}
+              <div className={`vehicle-carousel ${vehicle ? "compact" : ""}`}>
+                {(useDB ? vehicleTypes : Object.keys(vehicles).map(n => ({ name: n, iconPath: "" }))).map((vt) => {
+                  const v = vt.name;
+                  return (
+                    <div
+                      key={v}
+                      className={`vehicle-card ${vehicle === v ? "active" : ""} ${vehicle && vehicle !== v ? "faded" : ""}`}
+                      onClick={() => {
+                        setVehicle(v);
+                        setProblem(null);
+                        setEnergyType("");
+                        setBrand("");
+                        setModel("");
+                        setTyreOption("");
+                        setTyreSize("");
+                        setTyreType("");
+                        setShowPrice(false);
+                      }}
+                    >
+                      <img src={getVehicleIcon(v, vt.iconPath)} alt={v} className="vehicle-img" />
+                      <span>{v}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -334,8 +278,8 @@ function Home() {
       </section>
 
 
-      {/* PRICE */}
-      {showPrice && finalKey && (
+      {/* STEP 1 — SERVICE QUOTE */}
+      {showPrice && !showFeePayment && finalKey && (
         <div className="modal-overlay" onClick={() => setShowPrice(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <div className="modal-icon">💰</div>
@@ -343,25 +287,47 @@ function Home() {
             <p className="modal-summary">You selected a <strong>{vehicle}</strong> for <strong>{finalKey}</strong>.</p>
 
             <div className="price-container">
-              <span className="price-label">Estimated Cost</span>
+              <span className="price-label">Estimated Service Cost</span>
               <div className="price-value">${prices[finalKey]}</div>
             </div>
 
-            <button
-              className="pay-btn"
-              onClick={handleRequestMechanic}
-              disabled={requestStatus === 'loading'}
-            >
-              {requestStatus === 'loading' ? 'Processing...' : requestStatus === 'success' ? 'Request Dispatched!' : 'Request Mechanic Now'}
+            <div className="platform-fee-note">
+              <span>Pay $1 to dispatch mechanic</span>
+            </div>
+
+            <button className="pay-btn" onClick={() => setShowFeePayment(true)}>
+              Continue to Payment →
             </button>
-            <button
-              className="close-btn"
-              onClick={() => setShowPrice(false)}
-            >
+            <button className="close-btn" onClick={() => setShowPrice(false)}>
               Go Back
             </button>
           </div>
         </div>
+      )}
+
+      {/* STEP 2 — PLATFORM FEE PAYMENT MODAL */}
+      {showFeePayment && (
+        <PlatformFeeModal
+          vehicle={vehicle}
+          problem={finalKey}
+          servicePayload={{
+            vehicleType: vehicle,
+            problem: problem,
+            details: { energyType, brand, model, tyreOption, tyreSize, tyreType },
+            price: prices[finalKey],
+          }}
+          onClose={() => setShowFeePayment(false)}
+          onSuccess={(_, requestId, mechanicsCount) => {
+            setShowFeePayment(false);
+            setShowPrice(false);
+            const message = mechanicsCount > 0
+              ? `Payment confirmed! Your request has been sent to ${mechanicsCount} nearby mechanic${mechanicsCount > 1 ? "s" : ""}. Check "Active Jobs" to track progress!`
+              : `Payment confirmed! Searching for available mechanics. Check "Active Jobs" to track your request.`;
+            alert(message);
+            setVehicle(null);
+            setProblem(null);
+          }}
+        />
       )}
 
       {/* CAROUSEL */}

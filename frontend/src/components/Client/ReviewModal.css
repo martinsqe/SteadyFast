@@ -1,0 +1,274 @@
+.rv-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.rv-container {
+    background: #1a1a2e;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+}
+
+.rv-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 1.5rem 1rem;
+}
+
+.rv-header h2 {
+    color: #fff;
+    font-size: 1.25rem;
+    margin: 0;
+}
+
+.rv-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+}
+
+.rv-close:hover {
+    color: #fff;
+}
+
+.rv-mechanic-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0 1.5rem 1rem;
+}
+
+.rv-avatar {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.2rem;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.rv-mechanic-info h3 {
+    color: #fff;
+    margin: 0;
+    font-size: 1rem;
+}
+
+.rv-mechanic-info span {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 0.85rem;
+}
+
+.rv-service-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+.rv-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+}
+
+.rv-stars-section {
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.rv-stars-section p {
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+}
+
+.rv-stars {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.rv-star {
+    background: none;
+    border: none;
+    font-size: 2.5rem;
+    color: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: color 0.15s, transform 0.15s;
+    padding: 0;
+    line-height: 1;
+}
+
+.rv-star:hover {
+    transform: scale(1.15);
+}
+
+.rv-star.active {
+    color: #f59e0b;
+}
+
+.rv-rating-label {
+    display: block;
+    margin-top: 0.75rem;
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-height: 1.4em;
+}
+
+.rv-comment-section {
+    padding: 0 1.5rem 1rem;
+}
+
+.rv-comment-section label {
+    display: block;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+    margin-bottom: 0.5rem;
+}
+
+.rv-comment-section textarea {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.rv-comment-section textarea:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+.rv-comment-section textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+.rv-actions {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem 1.5rem;
+}
+
+.rv-skip-btn {
+    flex: 1;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.rv-skip-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.rv-submit-btn {
+    flex: 2;
+    padding: 0.75rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.rv-submit-btn:hover {
+    opacity: 0.9;
+}
+
+.rv-submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Inline error */
+.rv-error {
+    margin: 0 1.5rem 0.5rem;
+    padding: 0.6rem 1rem;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    color: #f87171;
+    font-size: 0.82rem;
+}
+
+/* Success state */
+.rv-success {
+    padding: 3rem 1.5rem;
+    text-align: center;
+}
+
+.rv-success-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #10b981, #059669);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.25rem;
+    font-size: 1.75rem;
+    color: #fff;
+}
+
+.rv-success h2 {
+    color: #fff;
+    margin: 0 0 0.5rem;
+}
+
+.rv-success p {
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0 0 1.5rem;
+}
+
+.rv-done-btn {
+    padding: 0.75rem 2.5rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.rv-done-btn:hover {
+    opacity: 0.9;
+}

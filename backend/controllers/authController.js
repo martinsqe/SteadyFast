@@ -110,6 +110,9 @@ export const updateProfile = async (req, res) => {
       user.address = req.body.address || user.address;
       user.dateOfBirth = req.body.dateOfBirth || user.dateOfBirth;
       user.expertiseLevel = req.body.expertiseLevel || user.expertiseLevel;
+      if (typeof req.body.isAvailable !== "undefined") {
+        user.isAvailable = req.body.isAvailable === true || req.body.isAvailable === "true";
+      }
 
       if (req.body.password) {
         user.password = await bcrypt.hash(req.body.password, 10);
@@ -132,7 +135,8 @@ export const updateProfile = async (req, res) => {
         address: updatedUser.address,
         dateOfBirth: updatedUser.dateOfBirth,
         expertiseLevel: updatedUser.expertiseLevel,
-        profileImage: updatedUser.profileImage, // return the URL path
+        profileImage: updatedUser.profileImage,
+        isAvailable: updatedUser.isAvailable,
         role: updatedUser.role,
         token: generateToken(updatedUser._id),
       });
@@ -143,17 +147,34 @@ export const updateProfile = async (req, res) => {
     res.status(500).json({ message: "Update failed", error: error.message });
   }
 };
-// Get all mechanics (Client/Admin access)
+// Get all mechanics (Client/Admin access) with average ratings
 export const getMechanics = async (req, res) => {
   try {
     const mechanics = await User.find({ role: "mechanic" })
       .select("-password")
       .sort({ name: 1 });
 
+    // Get average ratings for all mechanics
+    const Review = (await import("../models/Review.js")).default;
+    const ratingAggregation = await Review.aggregate([
+      { $group: { _id: "$mechanic", averageRating: { $avg: "$rating" }, totalReviews: { $sum: 1 } } }
+    ]);
+
+    const ratingMap = {};
+    ratingAggregation.forEach(r => {
+      ratingMap[r._id.toString()] = { averageRating: Number(r.averageRating.toFixed(1)), totalReviews: r.totalReviews };
+    });
+
+    const mechanicsWithRatings = mechanics.map(m => ({
+      ...m.toObject(),
+      averageRating: ratingMap[m._id.toString()]?.averageRating || 0,
+      totalReviews: ratingMap[m._id.toString()]?.totalReviews || 0
+    }));
+
     res.json({
       success: true,
-      count: mechanics.length,
-      mechanics,
+      count: mechanicsWithRatings.length,
+      mechanics: mechanicsWithRatings,
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

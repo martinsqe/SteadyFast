@@ -103,6 +103,12 @@
     font-size: 1.1rem;
 }
 
+.price-dash {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
 .no-data {
     text-align: center;
     padding: 80px 20px !important;

@@ -14,7 +14,7 @@ const reviewSchema = new mongoose.Schema(
         },
         job: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "Job",
+            ref: "ServiceRequest",
             required: true,
         },
         rating: {

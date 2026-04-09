@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import mongoSanitize from "express-mongo-sanitize";
 import dotenv from "dotenv";
 import { createServer } from "http";
 import { Server } from "socket.io";
@@ -8,6 +10,11 @@ import authRoutes from "./routes/authRoutes.js";
 import mechanicRoutes from "./routes/mechanicRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import vehicleTypeRoutes from "./routes/vehicleTypeRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
+import ChatMessage from "./models/ChatMessage.js";
 
 dotenv.config();
 connectDB();
@@ -33,11 +40,26 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(helmet({
+  contentSecurityPolicy: false,                          // managed by frontend
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // allow static assets to load cross-origin
+  crossOriginEmbedderPolicy: false,                      // don't block cross-origin resources (breaks Socket.IO in some browsers)
+  crossOriginOpenerPolicy: { policy: "same-origin-allow-popups" }, // allow Razorpay / payment popups
+}));
+
 app.use(cors({
   origin: ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:5174", "http://127.0.0.1:5174"],
   credentials: true
 }));
+
+// Raw body for webhook signature verification (must come before express.json)
+app.use("/api/payments/stripe/webhook", express.raw({ type: "application/json" }));
+app.use("/api/payments/razorpay/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
+
+// Strip $ operator keys from request bodies to prevent NoSQL injection
+// allowDots:true keeps nested paths (e.g. details.brand) intact
+app.use(mongoSanitize({ allowDots: true }));
 app.use((req, res, next) => {
   console.log(`📡 [${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
@@ -51,6 +73,10 @@ app.use("/api/auth", authRoutes);
 app.use("/api/mechanic", mechanicRoutes);
 app.use("/api/services", serviceRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/vehicles", vehicleTypeRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/contact", contactRoutes);
 
 const PORT = process.env.PORT || 5000;
 
@@ -93,6 +119,30 @@ io.on("connection", (socket) => {
   socket.on("job:track", (jobId) => {
     socket.join(`job:${jobId}`);
     console.log(`👁️ User joined tracking room for job ${jobId}`);
+  });
+
+  // Real-time chat between client and mechanic
+  socket.on("chat:send", async ({ jobId, message, senderName, senderId, type, imageUrl }) => {
+    const timestamp = new Date().toISOString();
+    const payload = { jobId, message: message || "", senderName, senderId, type: type || "text", imageUrl, timestamp };
+
+    // Persist to DB (fire-and-forget, never blocks socket)
+    ChatMessage.create({
+      jobId, senderId, senderName,
+      type: type || "text",
+      message: message || "",
+      imageUrl,
+      timestamp: new Date(timestamp),
+    }).catch(e => console.error("Chat persist error:", e.message));
+
+    // Broadcast to everyone in the job room EXCEPT the sender
+    socket.to(`job:${jobId}`).emit("chat:message", payload);
+    console.log(`💬 Chat [${type || "text"}] in job:${jobId} from ${senderName}`);
+  });
+
+  // Typing indicator — lightweight, no DB write
+  socket.on("chat:typing", ({ jobId, senderName, isTyping }) => {
+    socket.to(`job:${jobId}`).emit("chat:typing", { senderName, isTyping });
   });
 
   socket.on("disconnect", () => {

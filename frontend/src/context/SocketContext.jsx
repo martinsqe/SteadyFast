@@ -31,16 +31,27 @@ export const SocketProvider = ({ children }) => {
         reconnectionDelay: 1000,
       });
 
-      newSocket.on('connect', () => {
-        console.log('Socket connected:', newSocket.id);
-        setConnected(true);
-
+      const joinRoom = () => {
         const userId = user._id || user.id;
         if (user.role === 'mechanic') {
           newSocket.emit('mechanic:join', userId);
+          console.log('🔧 Mechanic joined room:', userId);
         } else if (user.role === 'client') {
           newSocket.emit('client:join', userId);
+          console.log('👤 Client joined room:', userId);
         }
+      };
+
+      newSocket.on('connect', () => {
+        console.log('Socket connected:', newSocket.id);
+        setConnected(true);
+        joinRoom();
+      });
+
+      // Re-join room automatically on every reconnect (socket drops + comes back)
+      newSocket.on('reconnect', () => {
+        console.log('🔄 Socket reconnected — re-joining room');
+        joinRoom();
       });
 
       newSocket.on('disconnect', () => {

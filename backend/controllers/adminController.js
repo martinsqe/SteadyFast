@@ -1,6 +1,23 @@
 import User from "../models/User.js";
 import ServiceRequest from "../models/ServiceRequest.js";
 
+// Get all platform fee payments
+export const getPlatformFeePayments = async (req, res) => {
+    try {
+        const payments = await ServiceRequest.find({ platformFeeStatus: "paid" })
+            .populate("client", "name email phone")
+            .select("client vehicleType problem platformFee platformFeeMethod platformFeePaidAt createdAt")
+            .sort({ platformFeePaidAt: -1 });
+
+        const totalRevenue = payments.reduce((sum, p) => sum + (p.platformFee || 15), 0);
+
+        res.json({ success: true, data: payments, totalRevenue });
+    } catch (error) {
+        console.error("Error in getPlatformFeePayments:", error);
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
 // Get income summary for all mechanics
 export const getMechanicsIncome = async (req, res) => {
     try {

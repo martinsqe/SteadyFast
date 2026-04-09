@@ -104,7 +104,10 @@ const JobHistory = () => {
                                         </span>
                                     </td>
                                     <td className="cost-cell">
-                                        <strong className="price-text">${job.price?.toFixed(2)}</strong>
+                                        {job.status === "cancelled"
+                                            ? <span className="price-dash">—</span>
+                                            : <strong className="price-text">${job.price?.toFixed(2)}</strong>
+                                        }
                                     </td>
                                 </tr>
                             ))

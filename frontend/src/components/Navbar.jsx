@@ -37,7 +37,7 @@ function Navbar({ setPage }) {
           <button onClick={() => go("about")}>About</button>
           <button onClick={() => go("emergency")}>Emergency</button>
           <button onClick={() => go("tips")}>Tips</button>
-          <button onClick={() => go("chat")}>Chat</button>
+          <button onClick={() => go("contact")}>Contact</button>
 
           {user ? (
             <button className="login-btn" onClick={logout}>Logout</button>
@@ -59,7 +59,7 @@ function Navbar({ setPage }) {
           <button onClick={() => go("about")}>About</button>
           <button onClick={() => go("emergency")}>Emergency</button>
           <button onClick={() => go("tips")}>Tips</button>
-          <button onClick={() => go("chat")}>Chat</button>
+          <button onClick={() => go("contact")}>Contact</button>
 
           {user ? (
             <button onClick={logout}>Logout</button>

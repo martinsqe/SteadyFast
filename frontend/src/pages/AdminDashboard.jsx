@@ -4,6 +4,7 @@ import DashboardLayout from "../components/DashboardLayout";
 import AdminJobs from "./AdminJobs";
 import AdminReports from "./AdminReports";
 import AdminProfile from "./AdminProfile";
+import AdminVehicleTypes from "./AdminVehicleTypes";
 import "./AdminDashboard.css";
 
 function AdminDashboard() {
@@ -143,6 +144,7 @@ function AdminDashboard() {
     const renderContent = () => {
         if (activeView === 'jobs') return <AdminJobs />;
         if (activeView === 'reports') return <AdminReports />;
+        if (activeView === 'vehicles') return <AdminVehicleTypes />;
         if (activeView === 'profile') return <AdminProfile />;
 
         // Default: User Dashboard / Clients / Mechanics views

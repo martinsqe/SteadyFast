@@ -9,6 +9,7 @@ import About from "./pages/About";
 import Emergency from "./pages/Emergency";
 import Tips from "./pages/Tips";
 import Chat from "./pages/Chat";
+import ContactUs from "./pages/ContactUs";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import ResetPassword from "./pages/ResetPassword";
@@ -76,6 +77,8 @@ function App() {
         return <Tips key="tips" />;
       case "chat":
         return <Chat key="chat" />;
+      case "contact":
+        return <ContactUs key="contact" />;
       case "login":
         return <Login setPage={setPage} key="login" />;
       case "signup":

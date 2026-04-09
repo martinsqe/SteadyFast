@@ -262,6 +262,43 @@
     color: #f87171;
 }
 
+/* Platform Fee Payments button */
+.btn-fee-payments {
+    padding: 0.7rem 1.4rem;
+    background: rgba(37, 99, 235, 0.18);
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    color: #93c5fd;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.btn-fee-payments:hover {
+    background: rgba(37, 99, 235, 0.32);
+    color: #fff;
+}
+
+/* Fee amount cell */
+.fee-amount {
+    font-weight: 700;
+    color: #4ade80;
+    font-size: 1rem;
+}
+
+/* Payment method badge */
+.fee-method-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
 @media (max-width: 768px) {
     .report-header {
         flex-direction: column;

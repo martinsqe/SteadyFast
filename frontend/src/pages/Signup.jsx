@@ -124,7 +124,7 @@ function Signup({ setPage }) {
                     <label style={styles.label}>Full Name</label>
                     <input
                         style={getInputStyle("name")}
-                        placeholder="John Doe"
+                        placeholder="Enter name"
                         onBlur={() => setTouched({ ...touched, name: true })}
                         onChange={(e) => setName(e.target.value)}
                     />
@@ -136,7 +136,7 @@ function Signup({ setPage }) {
                     <input
                         style={getInputStyle("email")}
                         type="email"
-                        placeholder="john@example.com"
+                        placeholder="Enter email"
                         onBlur={() => setTouched({ ...touched, email: true })}
                         onChange={(e) => setEmail(e.target.value)}
                     />
