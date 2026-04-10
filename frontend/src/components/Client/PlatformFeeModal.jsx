@@ -1,44 +1,46 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import axios from "axios";
 import "./PaymentModal.css";
 
-const API = import.meta.env.VITE_API_URL;
-const STRIPE_PK = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
-const RAZORPAY_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
-const PLATFORM_FEE = 1;
+const API          = import.meta.env.VITE_API_URL;
+const STRIPE_PK    = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const RZP_KEY_ID   = import.meta.env.VITE_RAZORPAY_KEY_ID;
+const RAZORPAY_SRC = "https://checkout.razorpay.com/v1/checkout.js";
+
+const PLATFORM_FEE_USD = 1;     // $1 shown for card / cash
+const PLATFORM_FEE_INR = 100;   // ₹100 — displayed and charged via Razorpay
 
 const stripePromise = STRIPE_PK ? loadStripe(STRIPE_PK) : null;
 
 const PAYMENT_METHODS = [
-  { id: "card",  icon: "💳", label: "Credit / Debit / ATM Card", sub: "Secure card payment",         badge: "Visa • Mastercard • RuPay" },
-  { id: "upi",   icon: "📱", label: "UPI",                        sub: "Pay by any UPI app",           badge: "Instant • No extra charges" },
-  { id: "mpesa", icon: "📲", label: "M-Pesa",                     sub: "Pay via M-Pesa mobile money",  badge: "STK Push to your phone" },
-  { id: "cash",  icon: "💵", label: "Pay Cash",                    sub: "Pay on mechanic arrival",      badge: null },
+  { id: "card",  icon: "💳", label: "Credit / Debit Card",  sub: "Secure card payment",           badge: "Visa • Mastercard • RuPay" },
+  { id: "upi",   icon: "📱", label: "UPI",                   sub: "GPay • PhonePe • Paytm & more", badge: "Instant • No extra charges" },
+  { id: "mpesa", icon: "📲", label: "M-Pesa",                sub: "Pay via M-Pesa mobile money",   badge: "STK Push to your phone" },
+  { id: "cash",  icon: "💵", label: "Pay Cash on Arrival",   sub: "Pay when mechanic arrives",     badge: null },
 ];
 
-// ── Stripe card form (must be inside <Elements>) ──────────────────────────────
+// ── Stripe card form ──────────────────────────────────────────────────────────
 function StripeCardForm({ clientSecret, requestId, onSuccess, onError }) {
-  const stripe = useStripe();
+  const stripe   = useStripe();
   const elements = useElements();
-  const [paying, setPaying] = useState(false);
+  const [paying, setPaying]     = useState(false);
   const [cardName, setCardName] = useState("");
 
   const handlePay = async () => {
     if (!stripe || !elements) return;
-    if (!cardName.trim()) return onError("Enter the name on card.");
+    if (!cardName.trim()) return onError("Enter the name on your card.");
     setPaying(true);
     try {
       const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
-          card: elements.getElement(CardElement),
-          billing_details: { name: cardName }
-        }
+          card:            elements.getElement(CardElement),
+          billing_details: { name: cardName },
+        },
       });
       if (error) { setPaying(false); return onError(error.message); }
       if (paymentIntent.status === "succeeded") {
-        // Stripe webhook will dispatch, but also poll as fallback
         onSuccess("card", requestId);
       }
     } catch (err) {
@@ -52,23 +54,28 @@ function StripeCardForm({ clientSecret, requestId, onSuccess, onError }) {
       <div className="pm-right-title"><div className="pm-radio-dot active" /><span>Enter Card Details</span></div>
 
       <label className="pm-field-label">Name on Card</label>
-      <input className="pm-input" type="text" placeholder="John Doe"
-        value={cardName} onChange={e => setCardName(e.target.value)} />
+      <input
+        className="pm-input"
+        type="text"
+        placeholder="John Doe"
+        value={cardName}
+        onChange={e => setCardName(e.target.value)}
+      />
 
       <label className="pm-field-label" style={{ marginTop: "14px" }}>Card Details</label>
       <div className="pm-stripe-card-wrap">
         <CardElement options={{
           style: {
-            base: { fontSize: "15px", color: "#f1f5f9", "::placeholder": { color: "#64748b" }, iconColor: "#3b82f6" },
-            invalid: { color: "#ef4444" }
-          }
+            base:    { fontSize: "15px", color: "#f1f5f9", "::placeholder": { color: "#64748b" }, iconColor: "#3b82f6" },
+            invalid: { color: "#ef4444" },
+          },
         }} />
       </div>
 
       <div className="pm-secure-note">🔒 Secured by Stripe — your card details are never stored on our servers</div>
 
       <button className="pm-pay-btn" onClick={handlePay} disabled={paying || !stripe}>
-        {paying ? <><span className="pm-btn-spinner" /> Processing…</> : `Pay $${PLATFORM_FEE} securely`}
+        {paying ? <><span className="pm-btn-spinner" /> Processing…</> : `Pay $${PLATFORM_FEE_USD} securely`}
       </button>
     </div>
   );
@@ -76,95 +83,102 @@ function StripeCardForm({ clientSecret, requestId, onSuccess, onError }) {
 
 // ── Main modal ────────────────────────────────────────────────────────────────
 export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem, servicePayload }) {
-  const [selected, setSelected] = useState("card");
-  const [step, setStep] = useState("idle"); // idle | initiating | waiting | polling | done | error
+  const [selected, setSelected] = useState("upi"); // default to UPI for Indian users
+  const [step, setStep]         = useState("idle"); // idle | initiating | stripe_form | waiting | polling | done | error
   const [errorMsg, setErrorMsg] = useState("");
 
   // Stripe
   const [stripeClientSecret, setStripeClientSecret] = useState(null);
-  const [pendingRequestId, setPendingRequestId] = useState(null);
+  const [pendingRequestId, setPendingRequestId]     = useState(null);
 
   // M-Pesa
-  const [mpesaPhone, setMpesaPhone] = useState("");
+  const [mpesaPhone, setMpesaPhone]           = useState("");
   const [checkoutRequestId, setCheckoutRequestId] = useState(null);
 
-  // Razorpay
-  const razorpayOrderRef = useRef(null);
-
   // Polling
-  const pollRef = useRef(null);
+  const pollRef    = useRef(null);
+  const timeoutRef = useRef(null);
 
-  useEffect(() => () => clearInterval(pollRef.current), []);
+  // Idempotency
+  const idempotencyKeyRef = useRef(null);
+  const getIdempotencyKey = () => {
+    if (!idempotencyKeyRef.current) idempotencyKeyRef.current = crypto.randomUUID();
+    return idempotencyKeyRef.current;
+  };
+  const resetIdempotencyKey = () => { idempotencyKeyRef.current = null; };
+
+  // Cleanup on unmount
+  useEffect(() => () => {
+    clearInterval(pollRef.current);
+    clearTimeout(timeoutRef.current);
+  }, []);
 
   const token = () => localStorage.getItem("token");
 
-  // Generate a fresh idempotency key per payment attempt
-  const idempotencyKeyRef = useRef(null);
-  const getIdempotencyKey = () => {
-    if (!idempotencyKeyRef.current) {
-      idempotencyKeyRef.current = crypto.randomUUID();
-    }
-    return idempotencyKeyRef.current;
+  // Get user from localStorage for Razorpay prefill fallback
+  const getStoredUser = () => {
+    try { return JSON.parse(localStorage.getItem("user") || "{}"); } catch { return {}; }
   };
-  // Reset key on retry so a fresh attempt gets a new key
-  const resetIdempotencyKey = () => { idempotencyKeyRef.current = null; };
 
-  const startPolling = (requestId) => {
+  // ── Polling: call /status/:id every 2.5s, stop when paid ─────────────────
+  const startPolling = useCallback((requestId) => {
     clearInterval(pollRef.current);
+    clearTimeout(timeoutRef.current);
     setStep("polling");
+
     pollRef.current = setInterval(async () => {
       try {
         const res = await axios.get(`${API}/payments/status/${requestId}`,
           { headers: { Authorization: `Bearer ${token()}` } });
+
         if (res.data.paid && res.data.status === "pending") {
           clearInterval(pollRef.current);
+          clearTimeout(timeoutRef.current);
           setStep("done");
-          setTimeout(() => onSuccess("confirmed", requestId, res.data.notifiedMechanics || 0), 600);
+          setTimeout(() => onSuccess("confirmed", requestId, 0), 600);
         }
-      } catch { /* keep polling */ }
+      } catch { /* keep polling silently */ }
     }, 2500);
 
-    // Timeout after 3 minutes
-    setTimeout(() => {
+    // Give up after 3 minutes
+    timeoutRef.current = setTimeout(() => {
       clearInterval(pollRef.current);
-      if (step !== "done") setStep("error"), setErrorMsg("Payment timed out. Please try again.");
-    }, 180000);
-  };
+      setStep("error");
+      setErrorMsg("Payment timed out. Please try again.");
+    }, 180_000);
+  }, [onSuccess]);
 
-  // Initiate payment — creates the pending request + payment intent on backend
+  // ── Generic initiate call ─────────────────────────────────────────────────
   const initiate = async (extraFields = {}) => {
     setStep("initiating");
     setErrorMsg("");
     try {
-      const res = await axios.post(`${API}/payments/initiate`,
+      const res = await axios.post(
+        `${API}/payments/initiate`,
         { ...servicePayload, platformFeeMethod: selected, ...extraFields },
         {
           headers: {
-            Authorization: `Bearer ${token()}`,
+            Authorization:     `Bearer ${token()}`,
             "X-Idempotency-Key": getIdempotencyKey(),
-          }
+          },
         }
       );
       return res.data;
     } catch (err) {
       setStep("error");
-      const status = err.response?.status;
+      const status    = err.response?.status;
       const serverMsg = err.response?.data?.message || "";
-      const isAuthError = status === 401 || status === 403
-        || serverMsg.toLowerCase().includes("not authorized")
-        || serverMsg.toLowerCase().includes("unauthorized")
-        || serverMsg.toLowerCase().includes("no token")
-        || serverMsg.toLowerCase().includes("invalid token");
-      setErrorMsg(
-        isAuthError
-          ? "Please login to request a mechanic."
-          : serverMsg || "Failed to initiate payment. Please try again."
-      );
+      const isAuth    = status === 401 || status === 403
+        || /not authorized|unauthorized|no token|invalid token/i.test(serverMsg);
+
+      setErrorMsg(isAuth
+        ? "Please log in to request a mechanic."
+        : serverMsg || "Failed to initiate payment. Please try again.");
       return null;
     }
   };
 
-  // ── CARD: initiate → get clientSecret → Stripe handles the rest ──────────
+  // ── CARD: initiate → get Stripe clientSecret ──────────────────────────────
   const handleCardInitiate = async () => {
     const data = await initiate();
     if (!data) return;
@@ -173,10 +187,108 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
     setStep("stripe_form");
   };
 
-  const handleStripeSuccess = (method, requestId) => {
+  const handleStripeSuccess = (_method, requestId) => {
     setPendingRequestId(requestId);
-    setStep("polling");
     startPolling(requestId);
+  };
+
+  // ── UPI (Razorpay): initiate → open Razorpay checkout ────────────────────
+  const handleUpiInitiate = async () => {
+    const data = await initiate();
+    if (!data) return;
+    setPendingRequestId(data.requestId);
+    setStep("waiting");
+
+    const openCheckout = () => openRazorpay(data);
+
+    if (!window.Razorpay) {
+      const script   = document.createElement("script");
+      script.src     = RAZORPAY_SRC;
+      script.onload  = openCheckout;
+      script.onerror = () => {
+        setStep("error");
+        setErrorMsg("Failed to load Razorpay. Check your internet connection.");
+      };
+      document.body.appendChild(script);
+    } else {
+      openCheckout();
+    }
+  };
+
+  const openRazorpay = (data) => {
+    const storedUser = getStoredUser();
+
+    // Use prefill from backend (has user's name / email / phone) or fall back to localStorage
+    const prefill = {
+      name:    data.prefill?.name    || storedUser.name    || "",
+      email:   data.prefill?.email   || storedUser.email   || "",
+      contact: data.prefill?.contact || storedUser.phone   || "",
+    };
+
+    const rzp = new window.Razorpay({
+      key:         data.keyId || RZP_KEY_ID,
+      order_id:    data.orderId,
+      amount:      data.amount,           // in paise — Razorpay shows ₹ amount automatically
+      currency:    data.currency || "INR",
+      name:        "SteadyFast",
+      description: `Platform dispatch fee — ${problem}`,
+      image:       "/logo.png",           // your platform logo (falls back gracefully if missing)
+      prefill,
+      notes: {
+        service:   problem,
+        vehicle:   vehicle,
+        requestId: data.requestId,
+      },
+      theme: { color: "#2563eb" },
+      modal: {
+        backdropclose: false,
+        escape:        true,
+        ondismiss: () => {
+          // User closed the modal without paying — reset so they can retry
+          resetIdempotencyKey();
+          setStep("idle");
+          setErrorMsg("UPI payment was cancelled. Choose a method and try again.");
+        },
+      },
+      handler: async (response) => {
+        // Payment succeeded in Razorpay — verify on our backend
+        setStep("initiating"); // show spinner while we verify
+        try {
+          const res = await axios.post(
+            `${API}/payments/razorpay/verify`,
+            {
+              razorpayOrderId:   response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+              requestId:         data.requestId,
+            },
+            { headers: { Authorization: `Bearer ${token()}` } }
+          );
+
+          if (res.data.success) {
+            setStep("done");
+            setTimeout(() => onSuccess("confirmed", data.requestId, res.data.notifiedMechanics || 0), 600);
+          } else {
+            throw new Error(res.data.message || "Verification failed");
+          }
+        } catch (err) {
+          setStep("error");
+          setErrorMsg(
+            err.response?.data?.message ||
+            err.message ||
+            "Payment verification failed. Contact support with your payment ID."
+          );
+        }
+      },
+    });
+
+    rzp.on("payment.failed", (resp) => {
+      setStep("error");
+      const desc = resp.error?.description || "Payment failed";
+      setErrorMsg(`UPI payment failed: ${desc}. Please try again.`);
+    });
+
+    rzp.open();
   };
 
   // ── M-PESA: initiate STK push → poll ─────────────────────────────────────
@@ -186,62 +298,8 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
     if (!data) return;
     setCheckoutRequestId(data.checkoutRequestId);
     setPendingRequestId(data.requestId);
-    setStep("waiting"); // waiting for user to approve STK push on phone
-    startPolling(data.requestId);
-  };
-
-  // ── UPI (Razorpay): initiate → load Razorpay checkout ────────────────────
-  const handleUpiInitiate = async () => {
-    const data = await initiate();
-    if (!data) return;
-    razorpayOrderRef.current = data;
-    setPendingRequestId(data.requestId);
     setStep("waiting");
-
-    // Load Razorpay script dynamically
-    if (!window.Razorpay) {
-      const script = document.createElement("script");
-      script.src = RAZORPAY_SCRIPT;
-      script.onload = () => openRazorpay(data);
-      document.body.appendChild(script);
-    } else {
-      openRazorpay(data);
-    }
-  };
-
-  const openRazorpay = (data) => {
-    const rzp = new window.Razorpay({
-      key: data.keyId,
-      order_id: data.orderId,
-      amount: data.amount,
-      currency: data.currency,
-      name: "SteadyFast",
-      description: `Platform fee — ${problem}`,
-      handler: async (response) => {
-        try {
-          const res = await axios.post(`${API}/payments/razorpay/verify`, {
-            razorpayOrderId: response.razorpay_order_id,
-            razorpayPaymentId: response.razorpay_payment_id,
-            razorpaySignature: response.razorpay_signature,
-            requestId: data.requestId
-          }, { headers: { Authorization: `Bearer ${token()}` } });
-
-          if (res.data.success) {
-            setStep("done");
-            setTimeout(() => onSuccess("confirmed", data.requestId, res.data.notifiedMechanics || 0), 600);
-          }
-        } catch {
-          setStep("error");
-          setErrorMsg("Payment verification failed. Contact support.");
-        }
-      },
-      modal: {
-        ondismiss: () => { setStep("idle"); setErrorMsg("UPI payment cancelled."); }
-      },
-      prefill: {},
-      theme: { color: "#2563eb" }
-    });
-    rzp.open();
+    startPolling(data.requestId);
   };
 
   // ── CASH: dispatch immediately ────────────────────────────────────────────
@@ -252,9 +310,8 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
     setTimeout(() => onSuccess("confirmed", data.requestId, data.notifiedMechanics || 0), 600);
   };
 
-  // ── Right panel renderer ──────────────────────────────────────────────────
+  // ── Right panel ───────────────────────────────────────────────────────────
   const renderRight = () => {
-
     if (step === "initiating") return (
       <div className="pm-right-content pm-centered">
         <div className="pm-spinner" />
@@ -267,7 +324,7 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
       <div className="pm-right-content pm-centered">
         <div className="pm-confirm-icon">✅</div>
         <h3 className="pm-confirm-title">Payment Confirmed!</h3>
-        <p className="pm-redirect-sub">Mechanic is being dispatched to you now.</p>
+        <p className="pm-redirect-sub">Mechanics are being dispatched to you now.</p>
       </div>
     );
 
@@ -276,7 +333,10 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
         <div className="pm-confirm-icon">❌</div>
         <h3 className="pm-confirm-title">Payment Failed</h3>
         <p className="pm-redirect-sub" style={{ color: "#f87171" }}>{errorMsg}</p>
-        <button className="pm-retry-btn" onClick={() => { resetIdempotencyKey(); setStep("idle"); setErrorMsg(""); }}>
+        <button
+          className="pm-retry-btn"
+          onClick={() => { resetIdempotencyKey(); setStep("idle"); setErrorMsg(""); }}
+        >
           🔄 Try Again
         </button>
       </div>
@@ -286,7 +346,10 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
 
       case "card":
         if (step === "stripe_form" && stripeClientSecret && stripePromise) return (
-          <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret, appearance: { theme: "night" } }}>
+          <Elements
+            stripe={stripePromise}
+            options={{ clientSecret: stripeClientSecret, appearance: { theme: "night" } }}
+          >
             <StripeCardForm
               clientSecret={stripeClientSecret}
               requestId={pendingRequestId}
@@ -300,7 +363,7 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
           <div className="pm-right-content pm-centered">
             <div className="pm-spinner" />
             <h3 className="pm-redirect-title">Verifying payment…</h3>
-            <p className="pm-redirect-sub">Confirming your card payment with our banking partner.</p>
+            <p className="pm-redirect-sub">Confirming your card payment with Stripe.</p>
           </div>
         );
 
@@ -315,7 +378,7 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
               </div>
             </div>
             <p className="pm-redirect-sub" style={{ margin: "12px 0" }}>
-              Click below to securely enter your card details. Your card is charged <strong>${PLATFORM_FEE}</strong> to dispatch a mechanic.
+              Your card is charged <strong>${PLATFORM_FEE_USD}</strong> to dispatch a mechanic.
             </p>
             <button className="pm-pay-btn" onClick={handleCardInitiate}>
               💳 Enter Card Details
@@ -324,13 +387,16 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
         );
 
       case "upi":
-        if (step === "waiting" || step === "polling") return (
+        if (step === "waiting") return (
           <div className="pm-right-content pm-centered">
             <div className="pm-spinner" />
             <h3 className="pm-redirect-title">Complete payment in UPI app</h3>
-            <p className="pm-redirect-sub">Razorpay checkout has opened. Complete your UPI payment and return here.</p>
+            <p className="pm-redirect-sub">
+              Razorpay checkout has opened. Select your UPI app and approve ₹{PLATFORM_FEE_INR}.
+            </p>
           </div>
         );
+
         return (
           <div className="pm-right-content">
             <div className="pm-right-title"><div className="pm-radio-dot active" /><span>Pay via UPI</span></div>
@@ -338,17 +404,17 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
               <div className="pm-merchant-logo">📱</div>
               <div>
                 <div className="pm-merchant-name">Powered by Razorpay</div>
-                <div className="pm-merchant-upi">Supports GPay, PhonePe, Paytm & all UPI apps</div>
+                <div className="pm-merchant-upi">GPay • PhonePe • Paytm • BHIM & all UPI apps</div>
               </div>
             </div>
             <div className="pm-cash-steps" style={{ marginTop: "16px" }}>
               <div className="pm-cash-step"><div className="pm-step-num">1</div><span>Click the button below</span></div>
               <div className="pm-cash-step"><div className="pm-step-num">2</div><span>Razorpay opens — select your UPI app</span></div>
-              <div className="pm-cash-step"><div className="pm-step-num">3</div><span>Approve ₹{PLATFORM_FEE * 83} in your UPI app</span></div>
+              <div className="pm-cash-step"><div className="pm-step-num">3</div><span>Approve <strong>₹{PLATFORM_FEE_INR}</strong> in your UPI app</span></div>
               <div className="pm-cash-step"><div className="pm-step-num">4</div><span>Mechanic dispatched automatically</span></div>
             </div>
             <button className="pm-pay-btn" onClick={handleUpiInitiate}>
-              📱 Open UPI Payment
+              📱 Pay ₹{PLATFORM_FEE_INR} via UPI
             </button>
           </div>
         );
@@ -359,11 +425,12 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
             <div className="pm-spinner" />
             <h3 className="pm-redirect-title">Check your phone</h3>
             <p className="pm-redirect-sub">
-              An M-Pesa STK push has been sent to <strong>{mpesaPhone}</strong>. Enter your PIN to confirm <strong>Ksh {PLATFORM_FEE * 130}</strong>.
+              An M-Pesa STK push has been sent to <strong>{mpesaPhone}</strong>. Enter your PIN to confirm.
             </p>
-            <p className="pm-confirm-note">Mechanic will be dispatched automatically once payment is confirmed.</p>
+            <p className="pm-confirm-note">Mechanic dispatched automatically once payment is confirmed.</p>
           </div>
         );
+
         return (
           <div className="pm-right-content">
             <div className="pm-right-title"><div className="pm-radio-dot active" /><span>Pay via M-Pesa</span></div>
@@ -375,17 +442,22 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
               </div>
             </div>
             <label className="pm-field-label" style={{ marginTop: "16px" }}>Your M-Pesa Phone Number</label>
-            <input className="pm-input" type="tel" placeholder="07XX XXX XXX or +254 7XX XXX XXX"
-              value={mpesaPhone} onChange={e => setMpesaPhone(e.target.value)} />
+            <input
+              className="pm-input"
+              type="tel"
+              placeholder="07XX XXX XXX or +254 7XX XXX XXX"
+              value={mpesaPhone}
+              onChange={e => setMpesaPhone(e.target.value)}
+            />
             {errorMsg && <p style={{ color: "#f87171", fontSize: "0.82rem", marginTop: "6px" }}>{errorMsg}</p>}
             <div className="pm-cash-steps" style={{ marginTop: "12px" }}>
               <div className="pm-cash-step"><div className="pm-step-num">1</div><span>Enter your M-Pesa number above</span></div>
-              <div className="pm-cash-step"><div className="pm-step-num">2</div><span>An STK push will be sent to your phone</span></div>
+              <div className="pm-cash-step"><div className="pm-step-num">2</div><span>An STK push is sent to your phone</span></div>
               <div className="pm-cash-step"><div className="pm-step-num">3</div><span>Enter your M-Pesa PIN to approve</span></div>
               <div className="pm-cash-step"><div className="pm-step-num">4</div><span>Mechanic dispatched automatically</span></div>
             </div>
             <button className="pm-pay-btn" onClick={handleMpesaInitiate}>
-              📲 Send M-Pesa STK Push — Ksh {PLATFORM_FEE * 130}
+              📲 Send M-Pesa STK Push
             </button>
           </div>
         );
@@ -396,11 +468,11 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
             <div className="pm-cash-confirm-wrap">
               <div className="pm-cash-icon">💵</div>
               <h3>Pay Cash on Arrival</h3>
-              <p>Pay <strong>${PLATFORM_FEE}</strong> platform fee directly to the mechanic when they arrive.</p>
+              <p>Pay <strong>${PLATFORM_FEE_USD}</strong> platform fee directly to the mechanic when they arrive.</p>
               <div className="pm-cash-steps">
                 <div className="pm-cash-step"><div className="pm-step-num">1</div><span>Confirm your request below</span></div>
                 <div className="pm-cash-step"><div className="pm-step-num">2</div><span>Mechanic is dispatched immediately</span></div>
-                <div className="pm-cash-step"><div className="pm-step-num">3</div><span>Pay <strong>${PLATFORM_FEE}</strong> cash when mechanic arrives</span></div>
+                <div className="pm-cash-step"><div className="pm-step-num">3</div><span>Pay <strong>${PLATFORM_FEE_USD}</strong> cash when mechanic arrives</span></div>
               </div>
               <button className="pm-cash-btn" onClick={handleCashConfirm}>
                 ✅ Confirm & Dispatch Mechanic
@@ -432,11 +504,11 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
           </div>
           <div className="pm-invoice-item">
             <span>Platform Dispatch Fee</span>
-            <span>${PLATFORM_FEE}.00</span>
+            <span>{selected === "upi" ? `₹${PLATFORM_FEE_INR}` : `$${PLATFORM_FEE_USD}.00`}</span>
           </div>
           <div className="pm-invoice-total">
             <span>Due Now</span>
-            <span>${PLATFORM_FEE}.00</span>
+            <span>{selected === "upi" ? `₹${PLATFORM_FEE_INR}` : `$${PLATFORM_FEE_USD}.00`}</span>
           </div>
         </div>
 
@@ -446,7 +518,12 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
               <div
                 key={m.id}
                 className={`pm-method-row ${selected === m.id ? "active" : ""}`}
-                onClick={() => { if (step === "idle" || step === "error") { setSelected(m.id); setErrorMsg(""); } }}
+                onClick={() => {
+                  if (step === "idle" || step === "error") {
+                    setSelected(m.id);
+                    setErrorMsg("");
+                  }
+                }}
               >
                 <div className="pm-method-icon">{m.icon}</div>
                 <div className="pm-method-text">
@@ -462,6 +539,7 @@ export default function PlatformFeeModal({ onSuccess, onClose, vehicle, problem,
             {renderRight()}
           </div>
         </div>
+
       </div>
     </div>
   );

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Road -->
+  <rect x="216" y="0" width="80" height="512" fill="#000"/>
+  <!-- Centre dashes -->
+  <rect x="248" y="40"  width="16" height="60" fill="#fff"/>
+  <rect x="248" y="140" width="16" height="60" fill="#fff"/>
+  <rect x="248" y="240" width="16" height="60" fill="#fff"/>
+  <rect x="248" y="340" width="16" height="60" fill="#fff"/>
+  <rect x="248" y="420" width="16" height="60" fill="#fff"/>
+  <!-- Wrench body -->
+  <path d="M340 100 Q380 60 420 80 L390 110 L380 130 L360 120 Z" fill="#000"/>
+  <rect x="300" y="110" width="80" height="24" rx="12" transform="rotate(-45 300 110)" fill="#000"/>
+  <path d="M280 200 Q260 220 270 240 L290 220 Z" fill="#000"/>
+</svg>

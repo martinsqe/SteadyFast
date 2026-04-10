@@ -20,6 +20,7 @@ import ClientDashboard from "./pages/ClientDashboard";
 import MechanicDashboard from "./pages/MechanicDashboard";
 
 import { AuthContext } from "./context/AuthContext";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 
 function App() {
   const [page, setPage] = useState(() => {
@@ -124,6 +125,9 @@ function App() {
         {/* Hide Footer for Admin and Mechanic, but KEEP for Client */}
         {!['admin', 'mechanic'].includes(user?.role) && <Footer />}
       </div>
+
+      {/* PWA install banner + update toast — renders on top of everything */}
+      <PWAInstallPrompt />
     </div>
   );
 }

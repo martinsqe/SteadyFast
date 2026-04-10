@@ -40,7 +40,7 @@ const serviceRequestSchema = new mongoose.Schema(
 
     platformFee: { type: Number, default: 1 },
     platformFeeStatus: { type: String, enum: ["paid", "pending"], default: "pending" },
-    platformFeeMethod: { type: String, enum: ["card", "cash", "mpesa"], default: "card" },
+    platformFeeMethod: { type: String, enum: ["card", "cash", "mpesa", "upi"], default: "card" },
     platformFeePaidAt: { type: Date, default: null },
 
     paymentIntentId: { type: String, default: null },

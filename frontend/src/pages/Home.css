@@ -127,10 +127,6 @@
   box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
 }
 
-.step-content {
-  flex-grow: 1;
-}
-
 .step-content h3 {
   margin: 0 0 20px 0;
   font-size: 1.3rem;
@@ -143,30 +139,98 @@
   margin: 0;
 }
 
-/* VEHICLE CAROUSEL — manual scroll, no animation */
+/* ─────────────────────────────────────────────────────────────────────────────
+   Vehicle Carousel  —  matches the review carousel style in About page exactly
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Critical: the flex chain must allow shrinking all the way to the track */
+.step-content {
+  flex-grow: 1;
+  min-width: 0;          /* without this the flex parent expands to content and overflow never fires */
+}
+
+/* Shell: position:relative so the absolute arrows anchor to it */
+.vc-shell {
+  position: relative;
+  width: 100%;
+  margin-top: 4px;
+}
+
+/* ── Scrollable track ── */
 .vehicle-carousel {
+  width: 100%;
   display: flex;
-  gap: 15px;
+  gap: 14px;
   overflow-x: auto;
-  padding-bottom: 8px;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
   cursor: grab;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 8px 2px 14px;
 }
-
+.vehicle-carousel::-webkit-scrollbar { display: none; }
 .vehicle-carousel:active { cursor: grabbing; }
 
-.vehicle-carousel::-webkit-scrollbar { height: 5px; }
-.vehicle-carousel::-webkit-scrollbar-track { background: rgba(0,0,0,0.04); border-radius: 4px; }
-.vehicle-carousel::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
 .vehicle-carousel .vehicle-card {
-  flex: 0 0 140px;
+  flex: 0 0 130px;
   scroll-snap-align: start;
 }
-
 .vehicle-carousel.compact .vehicle-card {
   flex: 0 0 110px;
+}
+
+/* ── Arrow buttons — identical look to About page review carousel ── */
+.vc-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-60%);
+  background: none !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  z-index: 4;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.vc-arrow:focus,
+.vc-arrow:focus-visible,
+.vc-arrow:hover,
+.vc-arrow:active {
+  background: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+.vc-arrow--left  { left:  -44px; }
+.vc-arrow--right { right: -44px; }
+
+/* SVG chevron — faint when nothing to scroll, darker when active */
+.vc-arrow svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: #e2e8f0;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.vc-arrow.vc-active svg {
+  stroke: #94a3b8;
+}
+
+.vc-arrow:hover {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 6px 18px rgba(37,99,235,0.30);
+  transform: translateY(-50%) scale(1.08);
+}
+.vc-arrow:active {
+  transform: translateY(-50%) scale(0.96);
 }
 
 .vehicle-card {
@@ -597,15 +661,12 @@
 }
 
 /* MOBILE */
-@media (max-width: 480px) {
-  .vehicle-carousel .vehicle-card {
-    flex: 0 0 110px;
-  }
-
-  .carousel-card {
-    width: 140px;
-    height: 100px;
-  }
+@media (max-width: 600px) {
+  .vehicle-carousel .vehicle-card { flex: 0 0 95px; }
+  .vc-arrow--left  { left:  -24px; }
+  .vc-arrow--right { right: -24px; }
+  .vc-arrow svg { width: 20px; height: 20px; }
+  .carousel-card { width: 140px; height: 100px; }
 }
 
 /* === FORCE CONFIRM BUTTON VISIBILITY === */

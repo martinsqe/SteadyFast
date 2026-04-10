@@ -6,25 +6,36 @@ import ServiceRequest from "../models/ServiceRequest.js";
 import { dispatchToMechanics } from "../utils/dispatchMechanics.js";
 import { audit, getIp } from "../middleware/paymentSecurity.js";
 
-const PLATFORM_FEE = 100; // $1 in cents (Stripe uses smallest currency unit)
-const PLATFORM_FEE_USD = 1;
+// ── Fee constants ─────────────────────────────────────────────────────────────
+const PLATFORM_FEE_USD   = 1;          // $1 (for Stripe / cash display)
+const PLATFORM_FEE_CENTS = 100;        // 100 cents  → Stripe uses smallest unit
+const PLATFORM_FEE_INR   = 100;        // ₹100       → reasonable INR equivalent of $1
+const PLATFORM_FEE_PAISE = 10000;      // 10 000 paise = ₹100 → Razorpay smallest unit
 
-// ── Stripe ────────────────────────────────────────────────────────────────────
+// ── Provider clients ──────────────────────────────────────────────────────────
 const stripe = process.env.STRIPE_SECRET_KEY
   ? new Stripe(process.env.STRIPE_SECRET_KEY)
   : null;
 
-// ── Razorpay ──────────────────────────────────────────────────────────────────
-const razorpay = (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
-  ? new Razorpay({ key_id: process.env.RAZORPAY_KEY_ID, key_secret: process.env.RAZORPAY_KEY_SECRET })
-  : null;
+const razorpay =
+  process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
+    ? new Razorpay({
+        key_id:     process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+      })
+    : null;
+
+// Returns true only if the secret has been set to a real value (not a placeholder)
+function isValidRazorpayWebhookSecret() {
+  const s = process.env.RAZORPAY_WEBHOOK_SECRET;
+  return s && !s.startsWith("YOUR_") && s.length > 10;
+}
 
 // ── M-Pesa helpers ────────────────────────────────────────────────────────────
 async function getMpesaToken() {
   const auth = Buffer.from(
     `${process.env.MPESA_CONSUMER_KEY}:${process.env.MPESA_CONSUMER_SECRET}`
   ).toString("base64");
-
   const res = await axios.get(
     "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials",
     { headers: { Authorization: `Basic ${auth}` } }
@@ -38,31 +49,28 @@ async function initiateSTKPush(phone, amount, requestId) {
   const password = Buffer.from(
     `${process.env.MPESA_BUSINESS_SHORT_CODE}${process.env.MPESA_PASSKEY}${timestamp}`
   ).toString("base64");
-
-  // Normalize phone: strip leading 0 or + and ensure starts with 254
   const normalized = phone.replace(/\D/g, "").replace(/^0/, "254").replace(/^\+/, "");
-
   const res = await axios.post(
     "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest",
     {
       BusinessShortCode: process.env.MPESA_BUSINESS_SHORT_CODE,
-      Password: password,
-      Timestamp: timestamp,
-      TransactionType: "CustomerPayBillOnline",
-      Amount: amount,
-      PartyA: normalized,
-      PartyB: process.env.MPESA_BUSINESS_SHORT_CODE,
-      PhoneNumber: normalized,
-      CallBackURL: `${process.env.MPESA_CALLBACK_URL}/api/payments/mpesa/callback`,
-      AccountReference: `SF-${requestId.toString().slice(-6)}`,
-      TransactionDesc: "SteadyFast Platform Fee"
+      Password:          password,
+      Timestamp:         timestamp,
+      TransactionType:   "CustomerPayBillOnline",
+      Amount:            amount,
+      PartyA:            normalized,
+      PartyB:            process.env.MPESA_BUSINESS_SHORT_CODE,
+      PhoneNumber:       normalized,
+      CallBackURL:       `${process.env.MPESA_CALLBACK_URL}/api/payments/mpesa/callback`,
+      AccountReference:  `SF-${requestId.toString().slice(-6)}`,
+      TransactionDesc:   "SteadyFast Platform Fee",
     },
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return res.data;
 }
 
-// ── INITIATE: Creates the pending service request + payment intent ─────────────
+// ── INITIATE: create pending service request + payment intent ─────────────────
 export const initiatePayment = async (req, res) => {
   try {
     const { vehicleType, problem, details, price, platformFeeMethod, location } = req.body;
@@ -71,37 +79,33 @@ export const initiatePayment = async (req, res) => {
       return res.status(400).json({ success: false, message: "Payment method required" });
     }
 
-    // Build the pending service request (status = payment_pending)
+    const providerMap = { card: "stripe", mpesa: "mpesa", upi: "razorpay", cash: "cash" };
+
     const requestData = {
-      client: req.user.id,
+      client:           req.user.id,
       vehicleType,
       problem,
       details,
       price,
-      platformFee: PLATFORM_FEE_USD,
+      platformFee:      PLATFORM_FEE_USD,
       platformFeeMethod,
-      paymentProvider: platformFeeMethod === "card" ? "stripe"
-        : platformFeeMethod === "mpesa" ? "mpesa"
-        : platformFeeMethod === "upi" ? "razorpay"
-        : "cash",
-      status: "payment_pending"
+      paymentProvider:  providerMap[platformFeeMethod] || "cash",
+      status:           "payment_pending",
     };
 
-    if (location?.coordinates) {
-      requestData.location = location;
-    }
+    if (location?.coordinates) requestData.location = location;
 
     const serviceRequest = await ServiceRequest.create(requestData);
     const requestId = serviceRequest._id;
 
     const commonAudit = {
       requestId,
-      clientId: req.user.id,
-      ip: getIp(req),
-      userAgent: req.headers["user-agent"],
+      clientId:       req.user.id,
+      ip:             getIp(req),
+      userAgent:      req.headers["user-agent"],
       idempotencyKey: req.idempotencyKey,
-      amount: PLATFORM_FEE_USD,
-      currency: "USD",
+      amount:         PLATFORM_FEE_USD,
+      currency:       "USD",
     };
 
     // ── Cash: auto-confirm immediately ────────────────────────────────────────
@@ -110,15 +114,10 @@ export const initiatePayment = async (req, res) => {
       const { notifiedMechanics } = await dispatchToMechanics(requestId, io);
       await ServiceRequest.findByIdAndUpdate(requestId, {
         platformFeeStatus: "paid",
-        platformFeePaidAt: new Date()
+        platformFeePaidAt: new Date(),
       });
       await audit({ ...commonAudit, event: "confirmed", provider: "cash", severity: "info" });
-      return res.status(201).json({
-        success: true,
-        requestId,
-        provider: "cash",
-        notifiedMechanics
-      });
+      return res.status(201).json({ success: true, requestId, provider: "cash", notifiedMechanics });
     }
 
     // ── Stripe (Card) ─────────────────────────────────────────────────────────
@@ -126,20 +125,20 @@ export const initiatePayment = async (req, res) => {
       if (!stripe) return res.status(500).json({ success: false, message: "Stripe not configured" });
 
       const paymentIntent = await stripe.paymentIntents.create({
-        amount: PLATFORM_FEE,
-        currency: "usd",
-        metadata: { requestId: requestId.toString() },
-        description: `SteadyFast platform fee — ${problem}`
+        amount:      PLATFORM_FEE_CENTS,
+        currency:    "usd",
+        metadata:    { requestId: requestId.toString() },
+        description: `SteadyFast platform fee — ${problem}`,
       });
 
       await ServiceRequest.findByIdAndUpdate(requestId, { paymentIntentId: paymentIntent.id });
       await audit({ ...commonAudit, event: "initiated", provider: "stripe", providerRef: paymentIntent.id, severity: "info" });
 
       return res.json({
-        success: true,
+        success:      true,
         requestId,
-        provider: "stripe",
-        clientSecret: paymentIntent.client_secret
+        provider:     "stripe",
+        clientSecret: paymentIntent.client_secret,
       });
     }
 
@@ -149,18 +148,15 @@ export const initiatePayment = async (req, res) => {
       if (!mpesaPhone) return res.status(400).json({ success: false, message: "M-Pesa phone required" });
 
       const stkData = await initiateSTKPush(mpesaPhone, PLATFORM_FEE_USD, requestId);
-
-      await ServiceRequest.findByIdAndUpdate(requestId, {
-        paymentIntentId: stkData.CheckoutRequestID
-      });
+      await ServiceRequest.findByIdAndUpdate(requestId, { paymentIntentId: stkData.CheckoutRequestID });
       await audit({ ...commonAudit, event: "initiated", provider: "mpesa", providerRef: stkData.CheckoutRequestID, severity: "info" });
 
       return res.json({
-        success: true,
+        success:           true,
         requestId,
-        provider: "mpesa",
+        provider:          "mpesa",
         checkoutRequestId: stkData.CheckoutRequestID,
-        merchantRequestId: stkData.MerchantRequestID
+        merchantRequestId: stkData.MerchantRequestID,
       });
     }
 
@@ -169,23 +165,41 @@ export const initiatePayment = async (req, res) => {
       if (!razorpay) return res.status(500).json({ success: false, message: "Razorpay not configured" });
 
       const order = await razorpay.orders.create({
-        amount: PLATFORM_FEE_USD * 100, // paise
+        amount:   PLATFORM_FEE_PAISE,            // ₹100 in paise
         currency: "INR",
-        receipt: requestId.toString().slice(-12),
-        notes: { requestId: requestId.toString() }
+        receipt:  requestId.toString().slice(-12),
+        notes: {
+          requestId:    requestId.toString(),
+          platformFee:  `₹${PLATFORM_FEE_INR}`,
+          service:      problem,
+        },
       });
 
       await ServiceRequest.findByIdAndUpdate(requestId, { paymentIntentId: order.id });
-      await audit({ ...commonAudit, event: "initiated", provider: "razorpay", providerRef: order.id, severity: "info" });
+      await audit({
+        ...commonAudit,
+        event:       "initiated",
+        provider:    "razorpay",
+        providerRef: order.id,
+        currency:    "INR",
+        amount:      PLATFORM_FEE_INR,
+        severity:    "info",
+      });
 
       return res.json({
-        success: true,
+        success:   true,
         requestId,
-        provider: "razorpay",
-        orderId: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        keyId: process.env.RAZORPAY_KEY_ID
+        provider:  "razorpay",
+        orderId:   order.id,
+        amount:    order.amount,          // paise — let Razorpay SDK handle display
+        currency:  order.currency,
+        keyId:     process.env.RAZORPAY_KEY_ID,
+        // Prefill data so the checkout form shows the user's details
+        prefill: {
+          name:    req.user.name    || "",
+          email:   req.user.email   || "",
+          contact: req.user.phone   || "",
+        },
       });
     }
 
@@ -217,11 +231,20 @@ export const stripeWebhook = async (req, res) => {
     try {
       await ServiceRequest.findByIdAndUpdate(requestId, {
         platformFeeStatus: "paid",
-        platformFeePaidAt: new Date()
+        platformFeePaidAt: new Date(),
       });
       const io = req.app.get("io");
       await dispatchToMechanics(requestId, io);
-      await audit({ event: "confirmed", provider: "stripe", providerRef: pi.id, requestId, amount: pi.amount / 100, currency: pi.currency?.toUpperCase(), ip: getIp(req), severity: "info" });
+      await audit({
+        event:       "confirmed",
+        provider:    "stripe",
+        providerRef: pi.id,
+        requestId,
+        amount:      pi.amount / 100,
+        currency:    pi.currency?.toUpperCase(),
+        ip:          getIp(req),
+        severity:    "info",
+      });
       console.log(`✅ Stripe payment confirmed — request ${requestId} dispatched`);
     } catch (err) {
       await audit({ event: "failed", provider: "stripe", providerRef: pi.id, requestId, ip: getIp(req), severity: "warn", metadata: { error: err.message } });
@@ -238,16 +261,15 @@ export const mpesaCallback = async (req, res) => {
     const body = req.body?.Body?.stkCallback;
     if (!body) return res.json({ ResultCode: 0, ResultDesc: "Accepted" });
 
-    const resultCode = body.ResultCode;
+    const resultCode        = body.ResultCode;
     const checkoutRequestId = body.CheckoutRequestID;
 
     if (resultCode === 0) {
-      // Payment successful
       const request = await ServiceRequest.findOne({ paymentIntentId: checkoutRequestId });
       if (request && request.status === "payment_pending") {
         await ServiceRequest.findByIdAndUpdate(request._id, {
           platformFeeStatus: "paid",
-          platformFeePaidAt: new Date()
+          platformFeePaidAt: new Date(),
         });
         const io = req.app.get("io");
         await dispatchToMechanics(request._id, io);
@@ -255,7 +277,6 @@ export const mpesaCallback = async (req, res) => {
         console.log(`✅ M-Pesa confirmed — request ${request._id} dispatched`);
       }
     } else {
-      // Payment failed — mark cancelled so frontend can retry
       const request = await ServiceRequest.findOne({ paymentIntentId: checkoutRequestId });
       if (request) {
         await ServiceRequest.findByIdAndUpdate(request._id, { status: "cancelled" });
@@ -269,28 +290,39 @@ export const mpesaCallback = async (req, res) => {
     res.json({ ResultCode: 0, ResultDesc: "Accepted" });
   } catch (err) {
     console.error("M-Pesa callback error:", err);
-    res.json({ ResultCode: 0, ResultDesc: "Accepted" }); // Always ack M-Pesa
+    res.json({ ResultCode: 0, ResultDesc: "Accepted" }); // always ack M-Pesa
   }
 };
 
 // ── RAZORPAY WEBHOOK ──────────────────────────────────────────────────────────
 export const razorpayWebhook = async (req, res) => {
-  const signature = req.headers["x-razorpay-signature"];
-  const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+  // Only verify signature when a real webhook secret is configured
+  if (isValidRazorpayWebhookSecret()) {
+    const signature = req.headers["x-razorpay-signature"];
+    const expectedSig = crypto
+      .createHmac("sha256", process.env.RAZORPAY_WEBHOOK_SECRET)
+      .update(req.body)
+      .digest("hex");
 
-  const expectedSig = crypto
-    .createHmac("sha256", secret)
-    .update(req.body)
-    .digest("hex");
-
-  if (signature !== expectedSig) {
-    return res.status(400).json({ success: false, message: "Invalid signature" });
+    if (signature !== expectedSig) {
+      console.warn("Razorpay webhook: invalid signature — rejected");
+      return res.status(400).json({ success: false, message: "Invalid signature" });
+    }
+  } else if (process.env.NODE_ENV === "production") {
+    // Block webhook if secret is not properly configured in production
+    console.error("Razorpay webhook: RAZORPAY_WEBHOOK_SECRET not set — rejecting in production");
+    return res.status(500).json({ success: false, message: "Webhook secret not configured" });
   }
 
-  const event = JSON.parse(req.body);
+  let event;
+  try {
+    event = typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+  } catch {
+    return res.status(400).json({ success: false, message: "Invalid JSON body" });
+  }
 
   if (event.event === "payment.captured") {
-    const orderId = event.payload?.payment?.entity?.order_id;
+    const orderId   = event.payload?.payment?.entity?.order_id;
     const paymentId = event.payload?.payment?.entity?.id;
     if (!orderId) return res.json({ received: true });
 
@@ -299,44 +331,92 @@ export const razorpayWebhook = async (req, res) => {
       if (request && request.status === "payment_pending") {
         await ServiceRequest.findByIdAndUpdate(request._id, {
           platformFeeStatus: "paid",
-          platformFeePaidAt: new Date()
+          platformFeePaidAt: new Date(),
         });
         const io = req.app.get("io");
         await dispatchToMechanics(request._id, io);
-        await audit({ event: "confirmed", provider: "razorpay", providerRef: paymentId || orderId, requestId: request._id, ip: getIp(req), severity: "info" });
-        console.log(`✅ Razorpay payment confirmed — request ${request._id} dispatched`);
+        await audit({
+          event:       "confirmed",
+          provider:    "razorpay",
+          providerRef: paymentId || orderId,
+          requestId:   request._id,
+          ip:          getIp(req),
+          severity:    "info",
+        });
+        console.log(`✅ Razorpay webhook confirmed — request ${request._id} dispatched`);
       }
     } catch (err) {
       await audit({ event: "failed", provider: "razorpay", providerRef: orderId, ip: getIp(req), severity: "warn", metadata: { error: err.message } });
-      console.error("Dispatch after Razorpay payment failed:", err);
+      console.error("Dispatch after Razorpay webhook failed:", err);
     }
   }
 
   res.json({ received: true });
 };
 
-// ── Verify Razorpay payment from frontend ─────────────────────────────────────
+// ── RAZORPAY CLIENT-SIDE VERIFY (primary path for UPI payments) ───────────────
 export const verifyRazorpayPayment = async (req, res) => {
   try {
     const { razorpayOrderId, razorpayPaymentId, razorpaySignature, requestId } = req.body;
 
-    const body = `${razorpayOrderId}|${razorpayPaymentId}`;
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature || !requestId) {
+      return res.status(400).json({ success: false, message: "Missing required payment fields" });
+    }
+
+    // HMAC-SHA256 signature verification using key_secret
+    const body        = `${razorpayOrderId}|${razorpayPaymentId}`;
     const expectedSig = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(body)
       .digest("hex");
 
     if (razorpaySignature !== expectedSig) {
-      return res.status(400).json({ success: false, message: "Payment verification failed" });
+      await audit({
+        requestId,
+        event:       "tamper_detected",
+        provider:    "razorpay",
+        providerRef: razorpayPaymentId,
+        ip:          getIp(req),
+        severity:    "critical",
+        metadata:    { reason: "signature_mismatch" },
+      });
+      return res.status(400).json({ success: false, message: "Payment verification failed — invalid signature" });
     }
 
+    // Check the service request is still in payment_pending state (prevent replay)
+    const existing = await ServiceRequest.findById(requestId).select("status platformFeeStatus");
+    if (!existing) {
+      return res.status(404).json({ success: false, message: "Service request not found" });
+    }
+    if (existing.platformFeeStatus === "paid") {
+      // Already confirmed — idempotent success
+      return res.json({ success: true, notifiedMechanics: 0, idempotent: true });
+    }
+
+    // Mark fee as paid and dispatch
     await ServiceRequest.findByIdAndUpdate(requestId, {
       platformFeeStatus: "paid",
-      platformFeePaidAt: new Date()
+      platformFeePaidAt: new Date(),
     });
 
     const io = req.app.get("io");
     const { notifiedMechanics } = await dispatchToMechanics(requestId, io);
+
+    await audit({
+      requestId,
+      clientId:    req.user?.id,
+      event:       "confirmed",
+      provider:    "razorpay",
+      providerRef: razorpayPaymentId,
+      amount:      PLATFORM_FEE_INR,
+      currency:    "INR",
+      ip:          getIp(req),
+      userAgent:   req.headers["user-agent"],
+      severity:    "info",
+      metadata:    { orderId: razorpayOrderId },
+    });
+
+    console.log(`✅ Razorpay payment verified — request ${requestId} dispatched to ${notifiedMechanics} mechanics`);
 
     res.json({ success: true, notifiedMechanics });
   } catch (err) {
@@ -345,7 +425,7 @@ export const verifyRazorpayPayment = async (req, res) => {
   }
 };
 
-// ── POLL: client checks if payment was confirmed ───────────────────────────────
+// ── POLL: client polls for payment confirmation ───────────────────────────────
 export const checkPaymentStatus = async (req, res) => {
   try {
     const { requestId } = req.params;
@@ -354,8 +434,8 @@ export const checkPaymentStatus = async (req, res) => {
 
     res.json({
       success: true,
-      status: request.status,
-      paid: request.platformFeeStatus === "paid"
+      status:  request.status,
+      paid:    request.platformFeeStatus === "paid",
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useRef, useCallback } from "react";
 import "./home.css";
 import { AuthContext } from "../context/AuthContext";
 import axios from "axios";
@@ -97,6 +97,40 @@ function Home() {
   const [showPrice, setShowPrice] = useState(false);
   const [showFeePayment, setShowFeePayment] = useState(false);
 
+  // ── Vehicle carousel scroll state ──────────────────────────────────────────
+  const carouselRef  = useRef(null);
+  const [canScrollL, setCanScrollL] = useState(false);
+  const [canScrollR, setCanScrollR] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    setCanScrollL(el.scrollLeft > 4);
+    setCanScrollR(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  }, []);
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    // rAF ensures the browser has laid out the new cards before we measure
+    const rafId = requestAnimationFrame(updateScrollState);
+    el.addEventListener("scroll", updateScrollState, { passive: true });
+    const ro = new ResizeObserver(updateScrollState);
+    ro.observe(el);
+    return () => {
+      cancelAnimationFrame(rafId);
+      el.removeEventListener("scroll", updateScrollState);
+      ro.disconnect();
+    };
+  }, [vehicleTypes, updateScrollState]);
+
+  const scrollCarousel = (dir) => {
+    const el = carouselRef.current;
+    if (!el) return;
+    // 2 cards × 130px + 1 gap × 14px = 274px per click
+    el.scrollBy({ left: dir * 274, behavior: "smooth" });
+  };
+
   const finalKey =
     problem === "Flat Tyre" ? `Flat Tyre-${tyreOption}` : problem;
 
@@ -125,30 +159,56 @@ function Home() {
             <div className="step-number">1</div>
             <div className="step-content">
               <h3>Select Vehicle</h3>
-              <div className={`vehicle-carousel ${vehicle ? "compact" : ""}`}>
-                {(useDB ? vehicleTypes : Object.keys(vehicles).map(n => ({ name: n, iconPath: "" }))).map((vt) => {
-                  const v = vt.name;
-                  return (
-                    <div
-                      key={v}
-                      className={`vehicle-card ${vehicle === v ? "active" : ""} ${vehicle && vehicle !== v ? "faded" : ""}`}
-                      onClick={() => {
-                        setVehicle(v);
-                        setProblem(null);
-                        setEnergyType("");
-                        setBrand("");
-                        setModel("");
-                        setTyreOption("");
-                        setTyreSize("");
-                        setTyreType("");
-                        setShowPrice(false);
-                      }}
-                    >
-                      <img src={getVehicleIcon(v, vt.iconPath)} alt={v} className="vehicle-img" />
-                      <span>{v}</span>
-                    </div>
-                  );
-                })}
+
+              {/* ── Carousel wrapper: [← btn] [scrollable track] [→ btn] ── */}
+              <div className="vc-shell">
+                {/* Left arrow — SVG chevron, matches About page review carousel */}
+                <button
+                  className={`vc-arrow vc-arrow--left${canScrollL ? " vc-active" : ""}`}
+                  onClick={() => scrollCarousel(-1)}
+                  aria-label="Scroll left"
+                >
+                  <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+
+                {/* Scrollable track */}
+                <div
+                  ref={carouselRef}
+                  className={`vehicle-carousel ${vehicle ? "compact" : ""}`}
+                >
+                  {(useDB ? vehicleTypes : Object.keys(vehicles).map(n => ({ name: n, iconPath: "" }))).map((vt) => {
+                    const v = vt.name;
+                    return (
+                      <div
+                        key={v}
+                        className={`vehicle-card ${vehicle === v ? "active" : ""} ${vehicle && vehicle !== v ? "faded" : ""}`}
+                        onClick={() => {
+                          setVehicle(v);
+                          setProblem(null);
+                          setEnergyType("");
+                          setBrand("");
+                          setModel("");
+                          setTyreOption("");
+                          setTyreSize("");
+                          setTyreType("");
+                          setShowPrice(false);
+                        }}
+                      >
+                        <img src={getVehicleIcon(v, vt.iconPath)} alt={v} className="vehicle-img" />
+                        <span>{v}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Right arrow — SVG chevron, matches About page review carousel */}
+                <button
+                  className={`vc-arrow vc-arrow--right${canScrollR ? " vc-active" : ""}`}
+                  onClick={() => scrollCarousel(1)}
+                  aria-label="Scroll right"
+                >
+                  <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6" /></svg>
+                </button>
               </div>
             </div>
           </div>
