@@ -28,6 +28,7 @@ const io = new Server(httpServer, {
     origin: [
       "http://localhost:5173", "http://127.0.0.1:5173",
       "http://localhost:5174", "http://127.0.0.1:5174",
+      "http://localhost:5175", "http://127.0.0.1:5175",
       "http://localhost:4173", "http://127.0.0.1:4173",
     ],
     credentials: true
@@ -55,6 +56,7 @@ app.use(cors({
   origin: [
     "http://localhost:5173", "http://127.0.0.1:5173",  // vite dev
     "http://localhost:5174", "http://127.0.0.1:5174",  // vite dev alt port
+    "http://localhost:5175", "http://127.0.0.1:5175",  // vite dev alt port
     "http://localhost:4173", "http://127.0.0.1:4173",  // vite preview (PWA testing)
   ],
   credentials: true

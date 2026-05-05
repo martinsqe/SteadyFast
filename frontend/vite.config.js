@@ -178,9 +178,9 @@ export default defineConfig({
         ],
       },
 
-      // ── Dev options — lets you test the SW in `vite dev` ────────────────────
+      // ── Dev options — SW disabled in dev to avoid intercepting login/auth flows
       devOptions: {
-        enabled:              true,
+        enabled:              false,
         type:                 'module',
         navigateFallback:     'index.html',
       },
