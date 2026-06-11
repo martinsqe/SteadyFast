@@ -19,3 +19,6 @@ If you are developing a production application, we recommend using TypeScript wi
 1: git add .
 2: git commit -m "your message"
 3: git push origin main
+git branch
+git merge conflicts
+see git merge conflicts

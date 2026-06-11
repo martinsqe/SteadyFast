@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from "react";
-import "./navbar.css";
+import "./Navbar.css";
 import { AuthContext } from "../context/AuthContext";
 
 function Navbar({ setPage }) {
