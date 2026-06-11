@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import "./dashboard.css";
+import "./Dashboard.css";
 
 const ClientLayout = ({ children, activePage, onNavigate }) => {
     const [isOpen, setIsOpen] = useState(false);

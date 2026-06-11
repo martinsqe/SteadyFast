@@ -1,6 +1,6 @@
 import { useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import "./dashboard.css"; // Reuse existing styles
+import "./Dashboard.css"; // Reuse existing styles
 
 const MechanicLayout = ({ children, activePage, onNavigate, newJobBadge }) => {
     const [isOpen, setIsOpen] = useState(false);

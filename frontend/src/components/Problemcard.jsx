@@ -1,4 +1,4 @@
-import "./problemcards.css";
+import "./Problemcards.css";
 
 function ProblemCard({ title, active, onClick }) {
   return (

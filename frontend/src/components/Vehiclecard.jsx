@@ -1,4 +1,4 @@
-import "./vehiclecards.css";
+import "./Vehiclecards.css";
 
 function VehicleCard({ title, icon, onClick }) {
   return (

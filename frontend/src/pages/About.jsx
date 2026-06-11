@@ -1,7 +1,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
-import "./about.css";
+import "./About.css";
 
 const API = import.meta.env.VITE_API_URL;
 const BASE = API ? API.replace("/api", "") : "http://localhost:5000";
